@@ -8,8 +8,15 @@
 <link rel="icon" type="image/png" href="logo.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-<!-- Client-side PDF extraction (more reliable than serverless pdf parsers) -->
+<!-- Client-side PDF extraction -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.js"></script>
+<script>
+  // REQUIRED for many deployments (fixes browser extraction failures)
+  if (window.pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.worker.min.js";
+  }
+</script>
 
 <style>
   :root{
@@ -261,7 +268,6 @@
 let generatedHTML = "";
 let selectedTemplate = "Modern Minimal";
 
-// Demo resume text
 const DEMO_RESUME_TEXT = `
 KRISHNA MURTHY K.
 Mumbai, India | +91-90000-00000 | krishna@email.com | linkedin.com/in/krishna
@@ -317,9 +323,13 @@ function hideAlert(){
   a.style.display = "none";
 }
 
-// Robust: supports unicode in demo text
-function toBase64Utf8(str){
-  return btoa(unescape(encodeURIComponent(str)));
+function toBase64(file){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = reject;
+  });
 }
 
 async function extractPdfTextClient(file){
@@ -339,10 +349,7 @@ async function extractPdfTextClient(file){
       }))
       .filter(it => it.str);
 
-    // Order: top-to-bottom, then left-to-right
     items.sort((a,b) => (b.y - a.y) || (a.x - b.x));
-
-    // Join with spaces; PDF layouts can be tricky, but this is a strong baseline
     fullText += items.map(i => i.str).join(" ") + "\n\n";
   }
 
@@ -355,15 +362,13 @@ async function useDemo(){
   document.getElementById("loader").style.display = "block";
   document.getElementById("loader").textContent = "Using demo resume…";
 
-  const payload = {
+  await runGenerateRequest({
     resumeText: DEMO_RESUME_TEXT,
     mimeType: "text/plain",
     role: document.getElementById("role").value,
     notes: document.getElementById("notes").value,
     template: selectedTemplate
-  };
-
-  await runGenerateRequest(payload);
+  });
 }
 
 async function generate(){
@@ -399,10 +404,12 @@ async function generate(){
       payload.resumeText = await extractPdfTextClient(file);
       payload.mimeType = "application/pdf";
     } catch(e){
-      document.getElementById("loader").style.display="none";
-      setStep(1);
-      showAlert("PDF extraction failed in browser. Please try exporting PDF as 'Print to PDF' or upload TXT.");
-      return;
+      console.error("PDF.js extraction error:", e);
+
+      // Fallback to server-side parsing (requires backend to support fileBase64)
+      document.getElementById("loader").textContent="Fallback: uploading PDF to server…";
+      payload.fileBase64 = await toBase64(file);
+      payload.mimeType = "application/pdf";
     }
   } else {
     document.getElementById("loader").textContent="Reading TXT…";
@@ -410,12 +417,19 @@ async function generate(){
     payload.mimeType = "text/plain";
   }
 
-  // Guard: if extraction is empty, prompt user
-  if(!payload.resumeText || payload.resumeText.replace(/\s/g,"").length < 80){
+  // If both resumeText and fileBase64 missing, stop
+  if(!payload.resumeText && !payload.fileBase64){
     document.getElementById("loader").style.display="none";
     setStep(1);
     showAlert("We couldn't extract readable text from this file. Please upload a text-based PDF or TXT.");
     return;
+  }
+
+  // If extracted text is too small, fall back to server if possible
+  if(payload.resumeText && payload.resumeText.replace(/\s/g,"").length < 80 && isPdf){
+    document.getElementById("loader").textContent="Text extraction is low. Uploading PDF to server for parsing…";
+    payload.fileBase64 = await toBase64(file);
+    delete payload.resumeText;
   }
 
   await runGenerateRequest(payload);
@@ -447,7 +461,7 @@ async function runGenerateRequest(payload){
     const iframe = document.getElementById("preview");
     iframe.srcdoc = generatedHTML;
 
-    // Auto-resize iframe so content isn't cut (Academic Green etc.)
+    // Auto-resize iframe height
     setTimeout(() => {
       try {
         const d = iframe.contentDocument || iframe.contentWindow.document;
@@ -522,13 +536,7 @@ function downloadPDF(){
     filename:"portfolio.pdf",
     margin: 0,
     image:{type:"jpeg",quality:0.98},
-    html2canvas:{
-      scale:2,
-      useCORS:true,
-      scrollY:0,
-      windowWidth:794,
-      backgroundColor:"#ffffff"
-    },
+    html2canvas:{scale:2,useCORS:true,scrollY:0,windowWidth:794,backgroundColor:"#ffffff"},
     jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
     pagebreak:{mode:["css","legacy"]}
   }).from(wrapper).save();
