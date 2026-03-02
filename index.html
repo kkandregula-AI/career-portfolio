@@ -150,7 +150,7 @@
 
   iframe{
     width:100%;
-    height:720px;
+    height:720px; /* fallback, auto-resized after generate */
     border:none;
     border-radius:16px;
     background:white;
@@ -258,7 +258,7 @@
 let generatedHTML = "";
 let selectedTemplate = "Modern Minimal";
 
-// Demo resume (short, safe, looks good in PDF)
+// Demo resume text
 const DEMO_RESUME_TEXT = `
 KRISHNA MURTHY K.
 Mumbai, India | +91-90000-00000 | krishna@email.com | linkedin.com/in/krishna
@@ -329,9 +329,7 @@ async function useDemo(){
   document.getElementById("loader").style.display = "block";
   document.getElementById("loader").textContent = "Using demo resume…";
 
-  // Create a fake TXT upload (so backend path is consistent)
   const base64 = btoa(unescape(encodeURIComponent(DEMO_RESUME_TEXT)));
-
   await runGenerateRequest(base64, "text/plain");
 }
 
@@ -344,7 +342,6 @@ async function generate(){
     return;
   }
 
-  // PDF/TXT only
   const ok = (file.type === "application/pdf") || (file.type === "text/plain") || (file.name || "").toLowerCase().endsWith(".txt");
   if(!ok){
     showAlert("Only PDF or TXT is supported for faster generation.");
@@ -355,9 +352,7 @@ async function generate(){
   document.getElementById("loader").textContent="Uploading resume…";
   setStep(1);
 
-  // Read file base64
   const base64 = await toBase64(file);
-
   await runGenerateRequest(base64, file.type || "text/plain");
 }
 
@@ -370,8 +365,6 @@ async function runGenerateRequest(fileBase64, mimeType){
   try{
     setStep(2);
     document.getElementById("loader").textContent = "Parsing resume…";
-
-    // Slight delay for nicer step transition (optional)
     await new Promise(r => setTimeout(r, 250));
 
     setStep(3);
@@ -395,16 +388,25 @@ async function runGenerateRequest(fileBase64, mimeType){
     }
 
     generatedHTML = cleanHTML(data.text);
-    document.getElementById("preview").srcdoc = generatedHTML;
+    const iframe = document.getElementById("preview");
+    iframe.srcdoc = generatedHTML;
+
+    // Auto-resize iframe height so no template looks "cut"
+    setTimeout(() => {
+      try {
+        const d = iframe.contentDocument || iframe.contentWindow.document;
+        const h = Math.max(d.body.scrollHeight, d.documentElement.scrollHeight);
+        iframe.style.height = (h + 20) + "px";
+      } catch (e) {}
+    }, 150);
 
     setStep(4);
     document.getElementById("loader").style.display="none";
     document.getElementById("htmlBtn").disabled=false;
     document.getElementById("pdfBtn").disabled=false;
 
-    // Auto-scroll to preview on mobile/narrow screens
     if (window.innerWidth < 920) {
-      document.getElementById("preview").scrollIntoView({ behavior:"smooth", block:"start" });
+      iframe.scrollIntoView({ behavior:"smooth", block:"start" });
     }
   }catch(e){
     document.getElementById("loader").style.display="none";
@@ -431,16 +433,24 @@ function downloadPDF(){
   const styleTags = Array.from(doc.querySelectorAll("style")).map(s => s.outerHTML).join("\n");
 
   const wrapper = document.createElement("div");
+  wrapper.style.background = "white";
   wrapper.style.width = "210mm";
+  wrapper.style.boxSizing = "border-box";
   wrapper.style.margin = "0";
   wrapper.style.padding = "0";
-  wrapper.style.background = "white";
 
   wrapper.innerHTML = `
     <style>
       @page { margin: 10mm; }
       html, body { margin: 0 !important; padding: 0 !important; }
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+      /* Prevent clipping/cut-offs */
+      * { box-sizing: border-box; }
+      #pdf-root, #pdf-root * { overflow: visible !important; }
+      #pdf-root { width: 210mm; padding: 0; margin: 0; }
+
+      /* Avoid splitting blocks */
       .keep-together, section, article, .project, .experience, li {
         break-inside: avoid !important;
         page-break-inside: avoid !important;
@@ -456,7 +466,7 @@ function downloadPDF(){
     filename:"portfolio.pdf",
     margin: 0,
     image:{type:"jpeg",quality:0.98},
-    html2canvas:{scale:2,useCORS:true,scrollY:0,windowWidth:794},
+    html2canvas:{scale:2,useCORS:true,scrollY:0,windowWidth:794,backgroundColor:"#ffffff"},
     jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
     pagebreak:{mode:["css","legacy"]}
   }).from(wrapper).save();
