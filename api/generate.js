@@ -1,7 +1,7 @@
 import pdf from "pdf-parse";
 import mammoth from "mammoth";
 
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const RATE_LIMIT_WINDOW = 60000;
 const MAX_REQUESTS = 5;
 const ipStore = new Map();
 
@@ -14,8 +14,8 @@ function checkRateLimit(ip) {
   return timestamps.length <= MAX_REQUESTS;
 }
 
-async function extractText(fileBase64, mime) {
-  const buffer = Buffer.from(fileBase64, "base64");
+async function extractText(base64, mime) {
+  const buffer = Buffer.from(base64, "base64");
 
   if (mime === "application/pdf") {
     const data = await pdf(buffer);
@@ -31,6 +31,7 @@ async function extractText(fileBase64, mime) {
 }
 
 export default async function handler(req, res) {
+
   if (req.method !== "POST") return res.status(405).end();
 
   const ip = req.headers["x-forwarded-for"] || "local";
@@ -48,23 +49,24 @@ export default async function handler(req, res) {
 
     const systemPrompt = `
 You are a premium portfolio website generator.
-Output ONLY a full HTML document.
-Template style: ${template}
+Output ONLY a complete standalone HTML document.
+Style template: ${template}.
+Use elegant typography and recruiter-friendly layout.
 `;
 
     const userPrompt = `
 Target Role: ${role || "Not specified"}
-Notes: ${notes || "None"}
+Extra Notes: ${notes || "None"}
 
 RESUME:
 ${resumeText}
 `;
 
-    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`
+        "Authorization": `Bearer ${key}`
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
@@ -73,12 +75,11 @@ ${resumeText}
           { role: "user", content: userPrompt }
         ],
         temperature: 0.2,
-        max_tokens: 2000,
-        stream: false
+        max_tokens: 2000
       })
     });
 
-    const data = await openaiResponse.json();
+    const data = await response.json();
     const text = data?.choices?.[0]?.message?.content || "";
 
     res.status(200).json({ text });
