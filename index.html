@@ -178,18 +178,34 @@ function downloadHTML(){
 }
 
 function downloadPDF(){
+
   const wrapper=document.createElement("div");
-  wrapper.style.margin="0";
-  wrapper.style.padding="0";
   wrapper.style.width="210mm";
-  wrapper.innerHTML=generatedHTML;
+
+  const printFixCss = `
+  <style>
+    @page { margin: 10mm; }
+    html, body { margin: 0 !important; }
+    .keep-together, section, article {
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+    }
+    h1, h2, h3 {
+      break-after: avoid !important;
+      page-break-after: avoid !important;
+    }
+  </style>
+  `;
+
+  wrapper.innerHTML=printFixCss + generatedHTML;
 
   html2pdf().set({
-    margin:0,
     filename:"portfolio.pdf",
+    margin:0,
     image:{type:"jpeg",quality:0.98},
-    html2canvas:{scale:2,useCORS:true,scrollY:0},
-    jsPDF:{unit:"mm",format:"a4",orientation:"portrait"}
+    html2canvas:{scale:2,useCORS:true},
+    jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
+    pagebreak:{mode:["css","legacy"]}
   }).from(wrapper).save();
 }
 

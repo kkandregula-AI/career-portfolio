@@ -50,19 +50,37 @@ export default async function handler(req, res) {
     const systemPrompt = `
 You are a premium portfolio website generator.
 
-CRITICAL RULES:
+OUTPUT RULES:
 - Output ONLY complete standalone HTML.
 - No markdown.
-- body { margin: 0; }
-- max-width: 900px centered layout.
-- Compact 1–2 page layout.
-- Professional recruiter-friendly design.
-- Skills must use multi-column grid layout:
+- body { margin: 0; font-family: system-ui; }
+
+HEADER STYLE (MANDATORY):
+- Full-width dark navy bar (#0B2D45).
+- Large white bold name centered.
+- One-line contact row below name in white/soft white:
+  Location | Phone | Email | LinkedIn
+
+LAYOUT:
+- Center main content max-width 900px.
+- Compact spacing.
+- Skills must use multi-column grid:
 
 .skills-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 10px;
+}
+
+PDF RULES:
+- Prevent section splitting across pages.
+- Wrap each project and experience block in:
+  <div class="keep-together">...</div>
+
+Add CSS:
+.keep-together {
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
 
 Template Style: ${template}
