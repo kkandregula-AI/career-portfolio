@@ -49,9 +49,24 @@ export default async function handler(req, res) {
 
     const systemPrompt = `
 You are a premium portfolio website generator.
-Output ONLY a complete standalone HTML document.
-Style template: ${template}.
-Use elegant typography and recruiter-friendly layout.
+
+CRITICAL RULES:
+- Output ONLY a complete standalone HTML document.
+- Do NOT include markdown.
+- Use clean semantic HTML.
+- Keep layout compact (1–2 pages max).
+- Professional recruiter-friendly design.
+- Skills MUST be displayed in responsive multi-column grid (minimum 3 columns desktop).
+- Avoid long vertical lists.
+- Use this skills layout pattern:
+
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+Template Style: ${template}
 `;
 
     const userPrompt = `
