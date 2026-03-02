@@ -1,6 +1,6 @@
 import pdf from "pdf-parse";
 
-const RATE_LIMIT_WINDOW = 60000; // 1 min
+const RATE_LIMIT_WINDOW = 60_000; // 1 minute
 const MAX_REQUESTS = 5;
 const ipStore = new Map();
 
@@ -22,6 +22,29 @@ async function extractTextFromFileBase64(fileBase64, mimeType) {
   return buffer.toString("utf8"); // txt
 }
 
+async function callOpenAI({ key, messages, maxTokens }) {
+  const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${key}`
+    },
+    body: JSON.stringify({
+      model: "gpt-3.5-turbo",
+      messages,
+      temperature: 0.2,
+      max_tokens: maxTokens
+    })
+  });
+
+  const j = await resp.json();
+  if (!resp.ok) {
+    const msg = j?.error?.message || "OpenAI request failed";
+    throw new Error(msg);
+  }
+  return j;
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
@@ -36,6 +59,7 @@ export default async function handler(req, res) {
 
     const { resumeText, fileBase64, mimeType, role, notes, template } = req.body || {};
 
+    // PDF/TXT only
     const allowed = ["application/pdf", "text/plain", ""];
     if (mimeType && !allowed.includes(mimeType)) {
       return res.status(400).json({ error: "Only PDF or TXT is supported." });
@@ -50,7 +74,7 @@ export default async function handler(req, res) {
     }
 
     // Too little text => image-based/protected PDF
-    if (text.replace(/\s/g,"").length < 120) {
+    if (text.replace(/\s/g, "").length < 120) {
       return res.status(400).json({
         error:
           "We could not extract enough readable text from this PDF. " +
@@ -59,9 +83,9 @@ export default async function handler(req, res) {
     }
 
     // Keep head + tail (prevents losing Projects/Certifications at end)
-    if (text.length > 18000) {
-      const head = text.slice(0, 12000);
-      const tail = text.slice(-6000);
+    if (text.length > 18_000) {
+      const head = text.slice(0, 12_000);
+      const tail = text.slice(-6_000);
       text = head + "\n\n---\n\n" + tail;
     }
 
@@ -92,7 +116,10 @@ PDF:
 - Wrap each experience item and each project item in <div class="keep-together">...</div>
 - .keep-together { break-inside: avoid; page-break-inside: avoid; }
 
-Template Style: ${template || "Modern Minimal"}
+STYLE:
+- Keep sections concise. Avoid long paragraphs.
+- Prefer compact spacing.
+- Template Style: ${template || "Modern Minimal"}
 `.trim();
 
     const userPrompt = `
@@ -103,31 +130,46 @@ RESUME (DO NOT DROP EXPERIENCE/PROJECTS):
 ${text}
 `.trim();
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${key}`
-      },
-      body: JSON.stringify({
-        model: "gpt-3.5-turbo",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
-        temperature: 0.2,
-        max_tokens: 1400
-      })
-    });
+    const baseMessages = [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt }
+    ];
 
-    const data = await response.json();
-    if (!response.ok) {
-      return res.status(response.status).json({
-        error: data?.error?.message || "OpenAI request failed"
-      });
+    // 1) First pass
+    let out = "";
+    const first = await callOpenAI({ key, messages: baseMessages, maxTokens: 2800 });
+    out += first?.choices?.[0]?.message?.content || "";
+    const finish1 = first?.choices?.[0]?.finish_reason;
+
+    // 2) Continue if truncated by token limit
+    if (finish1 === "length") {
+      const contMsgs = [
+        ...baseMessages,
+        { role: "assistant", content: out },
+        {
+          role: "user",
+          content:
+            "Continue EXACTLY where you stopped. Output ONLY the remaining HTML. " +
+            "Do not repeat earlier content. Ensure proper closing tags (including </body></html>)."
+        }
+      ];
+
+      const second = await callOpenAI({ key, messages: contMsgs, maxTokens: 1800 });
+      out += "\n" + (second?.choices?.[0]?.message?.content || "");
     }
 
-    return res.status(200).json({ text: data?.choices?.[0]?.message?.content || "" });
+    // Safety: if still missing closing tags, attempt one more short continuation
+    if (!out.includes("</html>")) {
+      const contMsgs2 = [
+        ...baseMessages,
+        { role: "assistant", content: out },
+        { role: "user", content: "Finish the HTML document by outputting ONLY missing closing tags/ending content. No repeats." }
+      ];
+      const third = await callOpenAI({ key, messages: contMsgs2, maxTokens: 400 });
+      out += "\n" + (third?.choices?.[0]?.message?.content || "");
+    }
+
+    return res.status(200).json({ text: out });
   } catch (err) {
     return res.status(500).json({ error: String(err) });
   }
