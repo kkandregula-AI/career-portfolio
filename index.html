@@ -80,6 +80,8 @@ iframe{
 .loader{
   display:none;
   margin-top:15px;
+  color:#475569;
+  font-weight:600;
 }
 </style>
 </head>
@@ -88,127 +90,151 @@ iframe{
 
 <div class="container">
 
-<div class="hero">
-  <img src="logo.png" alt="ElevateCV Logo">
-  <p>Transform Your Resume Into A Stunning Portfolio</p>
-</div>
+  <div class="hero">
+    <img src="logo.png" alt="ElevateCV Logo">
+    <p>Transform Your Resume Into A Stunning Portfolio</p>
+  </div>
 
-<div class="card">
+  <div class="card">
 
-<input type="file" id="file" accept=".pdf,.doc,.docx,.txt">
+    <input type="file" id="file" accept=".pdf,.doc,.docx,.txt">
 
-<select id="template">
-<option value="Modern Minimal">Modern Minimal</option>
-<option value="Executive Blue">Executive Blue</option>
-<option value="Academic Green">Academic Green</option>
-</select>
+    <select id="template">
+      <option value="Modern Minimal">Modern Minimal</option>
+      <option value="Executive Blue">Executive Blue</option>
+      <option value="Academic Green">Academic Green</option>
+    </select>
 
-<input type="text" id="role" placeholder="Target Role">
-<textarea id="notes" placeholder="Additional notes"></textarea>
+    <input type="text" id="role" placeholder="Target Role">
+    <textarea id="notes" placeholder="Additional notes"></textarea>
 
-<button onclick="generate()">Generate</button>
-<button id="htmlBtn" onclick="downloadHTML()" disabled>Download HTML</button>
-<button id="pdfBtn" onclick="downloadPDF()" disabled>Download PDF</button>
+    <button onclick="generate()">Generate</button>
+    <button id="htmlBtn" onclick="downloadHTML()" disabled>Download HTML</button>
+    <button id="pdfBtn" onclick="downloadPDF()" disabled>Download PDF</button>
 
-<div class="loader" id="loader">Generating portfolio...</div>
+    <div class="loader" id="loader">Generating portfolio...</div>
 
-</div>
+  </div>
 
-<div class="card">
-<iframe id="preview"></iframe>
-</div>
+  <div class="card">
+    <iframe id="preview"></iframe>
+  </div>
 
 </div>
 
 <script>
-
-let generatedHTML="";
+let generatedHTML = "";
 
 function cleanHTML(raw){
-  return raw.replace(/```html/g,"").replace(/```/g,"").trim();
+  return String(raw || "")
+    .replace(/```html/gi, "")
+    .replace(/```/g, "")
+    .trim();
 }
 
 function toBase64(file){
   return new Promise((resolve,reject)=>{
-    const reader=new FileReader();
+    const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload=()=>resolve(reader.result.split(',')[1]);
-    reader.onerror=reject;
+    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = reject;
   });
 }
 
 async function generate(){
-  const file=document.getElementById("file").files[0];
-  if(!file){alert("Upload resume");return;}
+  const file = document.getElementById("file").files[0];
+  if(!file){ alert("Upload resume"); return; }
 
   document.getElementById("loader").style.display="block";
 
-  const base64=await toBase64(file);
+  const base64 = await toBase64(file);
 
-  const response=await fetch("/api/generate",{
+  const response = await fetch("/api/generate",{
     method:"POST",
-    headers:{"Content-Type":"application/json"},
+    headers:{ "Content-Type":"application/json" },
     body:JSON.stringify({
-      fileBase64:base64,
-      mimeType:file.type,
-      role:document.getElementById("role").value,
-      notes:document.getElementById("notes").value,
-      template:document.getElementById("template").value
+      fileBase64: base64,
+      mimeType: file.type,
+      role: document.getElementById("role").value,
+      notes: document.getElementById("notes").value,
+      template: document.getElementById("template").value
     })
   });
 
-  const data=await response.json();
+  const data = await response.json();
   document.getElementById("loader").style.display="none";
 
-  if(!response.ok){alert(data.error);return;}
+  if(!response.ok){ alert(data.error || "Generation failed"); return; }
 
-  generatedHTML=cleanHTML(data.text);
-  document.getElementById("preview").srcdoc=generatedHTML;
+  generatedHTML = cleanHTML(data.text);
+  document.getElementById("preview").srcdoc = generatedHTML;
 
-  document.getElementById("htmlBtn").disabled=false;
-  document.getElementById("pdfBtn").disabled=false;
+  document.getElementById("htmlBtn").disabled = false;
+  document.getElementById("pdfBtn").disabled = false;
 }
 
 function downloadHTML(){
-  const blob=new Blob([generatedHTML],{type:"text/html"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="portfolio.html";
+  if(!generatedHTML){ alert("Generate first"); return; }
+  const blob = new Blob([generatedHTML], { type:"text/html" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "portfolio.html";
   a.click();
 }
 
 function downloadPDF(){
+  if(!generatedHTML){ alert("Generate first"); return; }
 
-  const wrapper=document.createElement("div");
-  wrapper.style.width="210mm";
+  // Parse the generated HTML document
+  const doc = new DOMParser().parseFromString(generatedHTML, "text/html");
 
-  const printFixCss = `
-  <style>
-    @page { margin: 10mm; }
-    html, body { margin: 0 !important; }
-    .keep-together, section, article {
-      break-inside: avoid !important;
-      page-break-inside: avoid !important;
-    }
-    h1, h2, h3 {
-      break-after: avoid !important;
-      page-break-after: avoid !important;
-    }
-  </style>
+  // Collect <style> tags from the generated HTML
+  const styleTags = Array.from(doc.querySelectorAll("style"))
+    .map(s => s.outerHTML)
+    .join("\n");
+
+  // Build a clean printable container (BODY ONLY)
+  const wrapper = document.createElement("div");
+  wrapper.style.width = "210mm";   // A4 width
+  wrapper.style.margin = "0";
+  wrapper.style.padding = "0";
+  wrapper.style.background = "white";
+
+  // Inject strong print rules + original styles + body content
+  wrapper.innerHTML = `
+    <style>
+      @page { margin: 10mm; }
+      html, body { margin: 0 !important; padding: 0 !important; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+      /* Keep blocks together to avoid ugly splits */
+      .keep-together, section, article, .project, .experience, li {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+      }
+      h1, h2, h3 { break-after: avoid !important; page-break-after: avoid !important; }
+      p { orphans: 3; widows: 3; }
+    </style>
+    ${styleTags}
+    <div id="pdf-root">
+      ${doc.body ? doc.body.innerHTML : generatedHTML}
+    </div>
   `;
-
-  wrapper.innerHTML=printFixCss + generatedHTML;
 
   html2pdf().set({
     filename:"portfolio.pdf",
-    margin:0,
+    margin: 0,
     image:{type:"jpeg",quality:0.98},
-    html2canvas:{scale:2,useCORS:true},
+    html2canvas:{
+      scale: 2,
+      useCORS: true,
+      scrollY: 0,
+      windowWidth: 794
+    },
     jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
     pagebreak:{mode:["css","legacy"]}
   }).from(wrapper).save();
 }
-
 </script>
 
 </body>
