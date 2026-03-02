@@ -1,270 +1,138 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PortfolioAI — Resume Builder</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>PortfolioAI Pro</title>
+
 <style>
-*{box-sizing:border-box}html,body{height:100%}body{margin:0;font-family:"DM Sans",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#faf8f4;color:#0a0a0f}
-:root{--ink:#0a0a0f;--cream:#faf8f4;--gold:#c9a84c;--gold-light:#e8d49a;--gold-dark:#8a6b1a;--muted:#6a6a78;--card:#ffffff;--line:rgba(10,10,15,.08);--shadow:0 12px 30px rgba(10,10,15,.12);--r:18px}
-a{color:inherit}
-.wrap{max-width:1120px;margin:0 auto;padding:28px 18px 70px}
-.pf-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
-.pf-logo{font-family:"Cormorant Garamond",serif;font-size:30px;letter-spacing:.5px}
-.pf-logo em{font-style:italic;color:var(--gold-dark)}
-.hdr-pill{padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.55);backdrop-filter:blur(10px);font-size:13px;color:var(--muted)}
-.pf-hero{display:grid;grid-template-columns:1.1fr .9fr;gap:22px;align-items:stretch}
-@media (max-width:940px){.pf-hero{grid-template-columns:1fr}}
-.pf-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
-.pf-card .inner{padding:18px}
-.eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
-.pf-h1{font-family:"Cormorant Garamond",serif;font-size:48px;line-height:1.05;margin:0 0 10px}
-.pf-h1 em{font-style:italic;color:var(--gold-dark)}
-.pf-sub{color:var(--muted);font-size:16px;line-height:1.5;margin:0 0 18px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media (max-width:560px){.grid2{grid-template-columns:1fr}}
-.lbl{font-size:12px;color:var(--muted);margin-bottom:6px}
-.inp,textarea{width:100%;padding:12px 12px;border-radius:12px;border:1px solid var(--line);background:#fff;outline:none;font:inherit}
-textarea{min-height:132px;resize:vertical}
-.row{margin-bottom:12px}
-.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-.btn{cursor:pointer;border:1px solid rgba(0,0,0,.08);padding:11px 14px;border-radius:14px;background:#fff;font-weight:600}
-.btn.primary{background:linear-gradient(135deg,var(--gold-light),var(--gold));border-color:rgba(0,0,0,.08)}
-.btn.ghost{background:transparent}
-.btn:disabled{opacity:.55;cursor:not-allowed}
-.small{font-size:12px;color:var(--muted)}
-.pf-preview{height:100%;min-height:420px}
-.pf-preview iframe{width:100%;height:100%;border:0;background:#fff}
-.prog{height:10px;background:rgba(0,0,0,.05);border-radius:999px;overflow:hidden}
-.prog > div{height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--gold-dark));transition:width .2s ease}
-.toast-wrap{position:fixed;right:14px;bottom:14px;display:flex;flex-direction:column;gap:10px;z-index:9999}
-.toast{background:#101017;color:#fff;padding:10px 12px;border-radius:12px;max-width:360px;box-shadow:0 18px 50px rgba(0,0,0,.25);font-size:13px}
-.toast.err{background:#5a1616}
+body{
+  font-family:system-ui;
+  margin:0;
+  background:#faf8f4;
+  transition:.3s;
+}
+.dark{
+  background:#111;
+  color:white;
+}
+.container{
+  max-width:1100px;
+  margin:auto;
+  padding:30px;
+}
+.card{
+  background:white;
+  padding:20px;
+  border-radius:12px;
+  margin-bottom:20px;
+}
+.dark .card{background:#1c1c1c}
+button{
+  padding:10px 15px;
+  margin-right:10px;
+  cursor:pointer;
+}
+.loader{
+  display:none;
+  margin-top:15px;
+}
+.spinner{
+  width:30px;
+  height:30px;
+  border:4px solid #ccc;
+  border-top:4px solid black;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+iframe{width:100%;height:600px;border:none;background:white}
 </style>
 </head>
+
 <body>
-<div class="wrap">
-  <div class="prog"><div id="progress-bar"></div></div>
-  <div class="toast-wrap" id="toast-wrap"></div>
 
-  <!-- Gemini calls are proxied through /api/generate; no API key is stored in this HTML -->
-  <div class="pf-header">
-    <div class="pf-logo">Portfolio<em>AI</em></div>
-    <div class="hdr-pill">AI-Powered Builder</div>
-  </div>
+<div class="container">
 
-  <div class="pf-hero">
-    <div class="pf-card">
-      <div class="inner">
-        <div class="eyebrow">Stand Out. Get Hired.</div>
-        <h1 class="pf-h1">Upload Resume,<br><em>Get Portfolio</em></h1>
-        <p class="pf-sub">Upload your resume (PDF/DOCX/TXT), add a few details, and generate a clean one-page portfolio site.</p>
+<h2>PortfolioAI Pro</h2>
 
-        <div class="grid2">
-          <div class="row">
-            <div class="lbl">Resume file</div>
-            <input class="inp" type="file" id="resumeFile" accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain">
-            <div class="small">PDF / DOCX / TXT supported</div>
-          </div>
+<div class="card">
 
-          <div class="row">
-            <div class="lbl">Target role (optional)</div>
-            <input class="inp" id="targetRole" placeholder="e.g., Product Manager / Data Scientist">
-          </div>
-        </div>
+<input type="file" id="file" accept=".pdf,.doc,.docx,.txt"><br><br>
 
-        <div class="row">
-          <div class="lbl">Notes / Special emphasis (optional)</div>
-          <textarea id="notes" placeholder="Any highlights you want to emphasize? (projects, metrics, leadership, tech stack, etc.)"></textarea>
-        </div>
+<select id="template">
+<option value="Modern Minimal">Modern Minimal</option>
+<option value="Executive Blue">Executive Blue</option>
+<option value="Academic Green">Academic Green</option>
+</select><br><br>
 
-        <div class="btns">
-          <button class="btn primary" id="btnGenerate">Generate Portfolio</button>
-          <button class="btn ghost" id="btnDownload" disabled>Download HTML</button>
-          <button class="btn ghost" id="btnReset">Reset</button>
-        </div>
+<input type="text" id="role" placeholder="Target Role"><br><br>
+<textarea id="notes" placeholder="Extra notes"></textarea><br><br>
 
-        <div class="small" style="margin-top:10px">
-          If you see errors, ensure your Vercel project has <b>GEMINI_API_KEY</b> set in Environment Variables.
-        </div>
-      </div>
-    </div>
+<button onclick="generate()">Generate</button>
+<button onclick="toggleDark()">Toggle Dark</button>
 
-    <div class="pf-card pf-preview">
-      <iframe id="preview"></iframe>
-    </div>
-  </div>
+<div class="loader" id="loader">
+<div class="spinner"></div>
+<p>Generating portfolio...</p>
+</div>
+
+</div>
+
+<div class="card">
+<iframe id="preview"></iframe>
+</div>
+
 </div>
 
 <script>
-const MODEL = 'gemini-1.5-flash';
-// Call Gemini via your backend to avoid exposing API keys and to avoid CORS issues
-const API_ENDPOINT = '/api/generate';
 
-// State
-let state = {
-  html: '',
-  lastGenAt: null
-};
-
-const $ = sel => document.querySelector(sel);
-
-function toast(msg, isErr=false){
-  const wrap = $("#toast-wrap");
-  const t = document.createElement("div");
-  t.className = "toast" + (isErr ? " err" : "");
-  t.textContent = msg;
-  wrap.appendChild(t);
-  setTimeout(()=>{ t.style.opacity="0"; t.style.transition="opacity .3s"; }, 2600);
-  setTimeout(()=>{ t.remove(); }, 3200);
+function toggleDark(){
+  document.body.classList.toggle("dark");
 }
 
-function setProgress(p){
-  $("#progress-bar").style.width = Math.max(0, Math.min(100, p)) + "%";
-}
-
-async function geminiPost(payload) {
-  const r = await fetch(API_ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type':'application/json' },
-    body: JSON.stringify({ payload, model: MODEL })
-  });
-
-  let data;
-  try { data = await r.json(); }
-  catch { throw new Error('Server returned a non-JSON response'); }
-
-  if (!r.ok) {
-    const msg = data?.error || data?.message || ('Request failed (' + r.status + ')');
-    throw new Error(msg);
-  }
-
-  // return raw Gemini response (so existing parsing continues to work)
-  return data.raw || data;
-}
-
-async function callGemini(prompt, max=2000) {
-  return geminiPost({
-    contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: { maxOutputTokens: max, temperature: 0.2 }
-  });
-}
-
-async function callGeminiWithFile(file, prompt, max=2000) {
-  const b64 = await new Promise((res, rej) => {
-    const reader = new FileReader();
-    reader.onload = ev => res(ev.target.result.split(',')[1]);
-    reader.onerror = () => rej(new Error('Failed to read file'));
+async function toBase64(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
     reader.readAsDataURL(file);
+    reader.onload=()=>resolve(reader.result.split(',')[1]);
+    reader.onerror=reject;
   });
-  const ext = file.name.split('.').pop().toLowerCase();
-  const mimeMap = { pdf:'application/pdf', txt:'text/plain', doc:'application/msword', docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
-  const mimeType = mimeMap[ext] || 'application/pdf';
-  return geminiPost({
-    contents: [{
-      parts: [
-        { inline_data: { mime_type: mimeType, data: b64 } },
-        { text: prompt }
-      ]
-    }],
-    generationConfig: { maxOutputTokens: max, temperature: 0.2 }
-  });
-}
-
-// --- App logic (unchanged except it now uses the proxied calls) ---
-function extractText(resp){
-  try{
-    return resp?.candidates?.[0]?.content?.parts?.map(p=>p.text).join("") || "";
-  }catch{ return ""; }
-}
-
-function downloadText(filename, text){
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([text], {type:"text/html"}));
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  URL.revokeObjectURL(a.href);
-  a.remove();
-}
-
-function buildPrompt(targetRole, notes){
-  return `
-You are a portfolio website generator.
-Output ONLY a complete, standalone HTML document (no markdown). Use inline CSS.
-
-Goal: Build a premium, clean, one-page portfolio for a candidate based on their resume.
-Requirements:
-- One-page layout, elegant typography, light theme.
-- Sections: Hero (name, title, summary), Skills, Experience, Projects, Education, Certifications (if any), Contact.
-- Add subtle background accents (very light), keep professional.
-- No external JS frameworks.
-- Mobile responsive.
-
-Target role: ${targetRole || "N/A"}
-Extra notes: ${notes || "N/A"}
-`;
 }
 
 async function generate(){
-  const file = $("#resumeFile").files?.[0];
-  const targetRole = $("#targetRole").value.trim();
-  const notes = $("#notes").value.trim();
+  const file=document.getElementById("file").files[0];
+  if(!file){ alert("Upload resume"); return; }
 
-  if(!file){
-    toast("Please upload a resume file first.", true);
+  document.getElementById("loader").style.display="block";
+
+  const base64=await toBase64(file);
+
+  const response=await fetch("/api/generate",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      fileBase64:base64,
+      mimeType:file.type,
+      role:document.getElementById("role").value,
+      notes:document.getElementById("notes").value,
+      template:document.getElementById("template").value
+    })
+  });
+
+  const data=await response.json();
+
+  document.getElementById("loader").style.display="none";
+
+  if(!response.ok){
+    alert(data.error);
     return;
   }
 
-  $("#btnGenerate").disabled = true;
-  setProgress(10);
-
-  try{
-    const prompt = buildPrompt(targetRole, notes);
-
-    setProgress(25);
-    const resp = await callGeminiWithFile(file, prompt, 2400);
-
-    setProgress(70);
-    const outHtml = extractText(resp).trim();
-
-    if(!outHtml || !outHtml.toLowerCase().includes("<html")){
-      throw new Error("Model did not return valid HTML. Try again with fewer notes or a clearer resume.");
-    }
-
-    state.html = outHtml;
-    state.lastGenAt = new Date();
-
-    $("#preview").srcdoc = outHtml;
-    $("#btnDownload").disabled = false;
-
-    setProgress(100);
-    toast("Portfolio generated.");
-  }catch(e){
-    console.error(e);
-    toast(String(e.message || e), true);
-    setProgress(0);
-  }finally{
-    $("#btnGenerate").disabled = false;
-    setTimeout(()=>setProgress(0), 900);
-  }
+  document.getElementById("preview").srcdoc=data.text;
 }
 
-$("#btnGenerate").addEventListener("click", generate);
-$("#btnDownload").addEventListener("click", ()=>{
-  if(!state.html) return;
-  downloadText("portfolio.html", state.html);
-});
-$("#btnReset").addEventListener("click", ()=>{
-  $("#resumeFile").value = "";
-  $("#targetRole").value = "";
-  $("#notes").value = "";
-  $("#preview").srcdoc = "";
-  $("#btnDownload").disabled = true;
-  state.html = "";
-  toast("Reset.");
-});
 </script>
+
 </body>
 </html>

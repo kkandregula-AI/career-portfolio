@@ -1,40 +1,89 @@
+import pdf from "pdf-parse";
+import mammoth from "mammoth";
+
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const MAX_REQUESTS = 5;
+const ipStore = new Map();
+
+function checkRateLimit(ip) {
+  const now = Date.now();
+  if (!ipStore.has(ip)) ipStore.set(ip, []);
+  const timestamps = ipStore.get(ip).filter(t => now - t < RATE_LIMIT_WINDOW);
+  timestamps.push(now);
+  ipStore.set(ip, timestamps);
+  return timestamps.length <= MAX_REQUESTS;
+}
+
+async function extractText(fileBase64, mime) {
+  const buffer = Buffer.from(fileBase64, "base64");
+
+  if (mime === "application/pdf") {
+    const data = await pdf(buffer);
+    return data.text;
+  }
+
+  if (mime.includes("word")) {
+    const result = await mammoth.extractRawText({ buffer });
+    return result.value;
+  }
+
+  return buffer.toString("utf8");
+}
+
 export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
+  if (req.method !== "POST") return res.status(405).end();
+
+  const ip = req.headers["x-forwarded-for"] || "local";
+  if (!checkRateLimit(ip)) {
+    return res.status(429).json({ error: "Too many requests. Try again later." });
+  }
 
   try {
-    const { payload, model } = req.body || {};
-    if (!payload) return res.status(400).json({ error: "Missing payload" });
+    const key = process.env.OPENAI_API_KEY;
+    if (!key) return res.status(500).json({ error: "Missing OPENAI_API_KEY" });
 
-    const key = process.env.GEMINI_API_KEY;
-    if (!key) return res.status(500).json({ error: "Server misconfigured: missing GEMINI_API_KEY" });
+    const { fileBase64, mimeType, role, notes, template } = req.body;
 
-    const chosenModel =
-      typeof model === "string" && model.trim() ? model.trim() : "gemini-2.0-flash";
+    const resumeText = await extractText(fileBase64, mimeType);
 
-    const url =
-      "https://generativelanguage.googleapis.com/v1beta/models/" +
-      encodeURIComponent(chosenModel) +
-      ":generateContent?key=" +
-      encodeURIComponent(key);
+    const systemPrompt = `
+You are a premium portfolio website generator.
+Output ONLY a full HTML document.
+Template style: ${template}
+`;
 
-    const r = await fetch(url, {
+    const userPrompt = `
+Target Role: ${role || "Not specified"}
+Notes: ${notes || "None"}
+
+RESUME:
+${resumeText}
+`;
+
+    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        temperature: 0.2,
+        max_tokens: 2000,
+        stream: false
+      })
     });
 
-    const data = await r.json().catch(() => ({}));
+    const data = await openaiResponse.json();
+    const text = data?.choices?.[0]?.message?.content || "";
 
-    if (!r.ok) {
-      const msg =
-        data?.error?.message ||
-        data?.message ||
-        "Gemini request failed (" + r.status + ")";
-      return res.status(r.status).json({ error: msg, raw: data });
-    }
+    res.status(200).json({ text });
 
-    return res.status(200).json({ raw: data });
-  } catch (e) {
-    return res.status(500).json({ error: String(e) });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
   }
 }
