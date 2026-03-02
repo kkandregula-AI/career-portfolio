@@ -53,12 +53,13 @@ You are a premium portfolio website generator.
 CRITICAL RULES:
 - Output ONLY a complete standalone HTML document.
 - Do NOT include markdown.
-- Use clean semantic HTML.
+- Remove body margin (body { margin: 0; })
 - Keep layout compact (1–2 pages max).
-- Professional recruiter-friendly design.
-- Skills MUST be displayed in responsive multi-column grid (minimum 3 columns desktop).
-- Avoid long vertical lists.
-- Use this skills layout pattern:
+- Center content max-width 900px.
+- Avoid large top spacing.
+- Professional recruiter-friendly layout.
+- Skills MUST use responsive multi-column grid (min 3 columns desktop).
+- Use CSS grid like:
 
 .skills-grid {
   display: grid;
