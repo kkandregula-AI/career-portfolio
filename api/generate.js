@@ -1,6 +1,6 @@
 import pdf from "pdf-parse";
 
-const RATE_LIMIT_WINDOW = 60000;
+const RATE_LIMIT_WINDOW = 60000; // 1 min
 const MAX_REQUESTS = 5;
 const ipStore = new Map();
 
@@ -36,7 +36,6 @@ export default async function handler(req, res) {
 
     const { resumeText, fileBase64, mimeType, role, notes, template } = req.body || {};
 
-    // PDF/TXT only
     const allowed = ["application/pdf", "text/plain", ""];
     if (mimeType && !allowed.includes(mimeType)) {
       return res.status(400).json({ error: "Only PDF or TXT is supported." });
@@ -44,13 +43,22 @@ export default async function handler(req, res) {
 
     let text = (resumeText || "").trim();
 
-    // Fallback: if client didn't send resumeText, use server extraction
+    // fallback: server extraction if browser extraction not provided
     if (!text) {
       if (!fileBase64) return res.status(400).json({ error: "Missing resume input." });
       text = await extractTextFromFileBase64(fileBase64, mimeType || "");
     }
 
-    // Keep head + tail so Projects at end don't get chopped
+    // Too little text => image-based/protected PDF
+    if (text.replace(/\s/g,"").length < 120) {
+      return res.status(400).json({
+        error:
+          "We could not extract enough readable text from this PDF. " +
+          "Try: Print → Save as PDF (text-based), or upload a TXT version."
+      });
+    }
+
+    // Keep head + tail (prevents losing Projects/Certifications at end)
     if (text.length > 18000) {
       const head = text.slice(0, 12000);
       const tail = text.slice(-6000);
@@ -62,11 +70,15 @@ You are a premium portfolio website generator.
 
 OUTPUT:
 - Output ONLY complete standalone HTML (no markdown/backticks).
-- body { margin: 0; font-family: system-ui; }
-- Center content max-width: 900px.
-- Compact, recruiter-friendly layout.
+- Use natural document flow.
 - Do NOT use fixed heights (no height:..., no 100vh).
 - Do NOT use overflow:hidden on body or major containers.
+- Use max-width: 900px and centered layout.
+
+MUST PRESERVE CONTENT:
+- NEVER omit any Professional Experience entries found in the resume text.
+- NEVER omit Projects found in the resume text.
+- If too many bullets, keep ALL roles/projects but limit to max 2 bullets each (do not drop roles).
 
 HEADER:
 - Full-width dark navy bar (#0B2D45).
@@ -87,7 +99,7 @@ Template Style: ${template || "Modern Minimal"}
 Target Role: ${role || "Not specified"}
 Extra Notes: ${notes || "None"}
 
-RESUME:
+RESUME (DO NOT DROP EXPERIENCE/PROJECTS):
 ${text}
 `.trim();
 
@@ -110,7 +122,9 @@ ${text}
 
     const data = await response.json();
     if (!response.ok) {
-      return res.status(response.status).json({ error: data?.error?.message || "OpenAI request failed" });
+      return res.status(response.status).json({
+        error: data?.error?.message || "OpenAI request failed"
+      });
     }
 
     return res.status(200).json({ text: data?.choices?.[0]?.message?.content || "" });

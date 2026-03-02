@@ -1,136 +1,591 @@
-import pdf from "pdf-parse";
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ElevateCV</title>
 
-const RATE_LIMIT_WINDOW = 60000; // 1 min
-const MAX_REQUESTS = 5;
-const ipStore = new Map();
+<link rel="icon" type="image/png" href="logo.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-function checkRateLimit(ip) {
-  const now = Date.now();
-  if (!ipStore.has(ip)) ipStore.set(ip, []);
-  const timestamps = ipStore.get(ip).filter(t => now - t < RATE_LIMIT_WINDOW);
-  timestamps.push(now);
-  ipStore.set(ip, timestamps);
-  return timestamps.length <= MAX_REQUESTS;
-}
-
-async function extractTextFromFileBase64(fileBase64, mimeType) {
-  const buffer = Buffer.from(fileBase64, "base64");
-  if (mimeType === "application/pdf") {
-    const data = await pdf(buffer);
-    return data.text || "";
+<!-- PDF.js for client-side extraction -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.js"></script>
+<script>
+  // REQUIRED for many deployments (fixes browser extraction failures)
+  if (window.pdfjsLib?.GlobalWorkerOptions) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.worker.min.js";
   }
-  return buffer.toString("utf8"); // txt
-}
+</script>
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).end();
+<style>
+  :root{
+    --bg1:#f8fafc; --bg2:#eef2ff;
+    --card:#ffffff; --ink:#0f172a; --muted:#64748b;
+    --line:#e5e7eb;
+    --accent1:#2563EB; --accent2:#7C3AED;
+    --shadow:0 15px 40px rgba(0,0,0,0.08);
+    --r:18px;
+  }
+  body{
+    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    margin:0;
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));
+    color:var(--ink);
+  }
+  .container{ max-width:1100px; margin:auto; padding:40px 20px; }
+  .hero{ text-align:center; margin-bottom:26px; }
+  .hero img{ max-width:320px; width:100%; margin-bottom:10px; }
+  .hero p{ font-size:16px; color:var(--muted); margin:0; }
 
-  const ip = req.headers["x-forwarded-for"] || "local";
-  if (!checkRateLimit(ip)) {
-    return res.status(429).json({ error: "Too many requests. Try again later." });
+  .grid{ display:grid; grid-template-columns: 1fr 1fr; gap:18px; }
+  @media (max-width: 920px){ .grid{ grid-template-columns:1fr; } }
+
+  .card{
+    background:var(--card);
+    padding:22px;
+    border-radius:var(--r);
+    box-shadow:var(--shadow);
+    border:1px solid rgba(0,0,0,0.03);
   }
 
-  try {
-    const key = process.env.OPENAI_API_KEY;
-    if (!key) return res.status(500).json({ error: "Missing OPENAI_API_KEY" });
+  .label{ font-size:12px; color:var(--muted); margin:0 0 8px; }
+  input, textarea{
+    width:100%;
+    padding:12px;
+    border-radius:12px;
+    border:1px solid var(--line);
+    margin-bottom:12px;
+    font:inherit;
+    background:#fff;
+  }
+  textarea{ min-height:110px; resize:vertical; }
 
-    const { resumeText, fileBase64, mimeType, role, notes, template } = req.body || {};
+  .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .btn{
+    padding:12px 16px;
+    border:none;
+    border-radius:12px;
+    font-weight:700;
+    cursor:pointer;
+    background:linear-gradient(90deg,var(--accent1),var(--accent2));
+    color:white;
+  }
+  .btn.secondary{
+    background:#f1f5f9;
+    color:var(--ink);
+    border:1px solid var(--line);
+  }
+  .btn:disabled{ opacity:.55; cursor:not-allowed; }
 
-    // PDF/TXT only
-    const allowed = ["application/pdf", "text/plain", ""];
-    if (mimeType && !allowed.includes(mimeType)) {
-      return res.status(400).json({ error: "Only PDF or TXT is supported." });
-    }
+  /* Template thumbnails */
+  .templates{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:10px;
+    margin:6px 0 14px;
+  }
+  @media (max-width: 520px){ .templates{ grid-template-columns:1fr; } }
 
-    let text = (resumeText || "").trim();
+  .tpl{
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:12px;
+    background: #fff;
+    cursor:pointer;
+    transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  }
+  .tpl:hover{ transform: translateY(-1px); box-shadow: 0 12px 30px rgba(15,23,42,0.08); }
+  .tpl.active{
+    border-color: rgba(37,99,235,0.6);
+    box-shadow: 0 12px 30px rgba(37,99,235,0.12);
+  }
+  .tpl-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .tpl-title{ font-weight:800; font-size:13px; }
+  .chip{ font-size:11px; color:var(--muted); border:1px solid var(--line); padding:3px 8px; border-radius:999px; background:#fff; }
+  .tpl-mini{
+    height:54px;
+    border-radius:10px;
+    border:1px solid rgba(0,0,0,0.04);
+    background: linear-gradient(180deg, rgba(2,6,23,0.03), rgba(2,6,23,0.00));
+    position:relative;
+    overflow:hidden;
+  }
+  .tpl-mini::before{
+    content:"";
+    position:absolute; left:10px; top:10px;
+    width:44%; height:8px; border-radius:999px;
+    background: rgba(15,23,42,0.12);
+  }
+  .tpl-mini::after{
+    content:"";
+    position:absolute; left:10px; top:24px;
+    width:70%; height:6px; border-radius:999px;
+    background: rgba(15,23,42,0.08);
+  }
+  .tpl-mini b{
+    position:absolute; right:-18px; bottom:-18px;
+    width:60px; height:60px; border-radius:18px;
+    background: linear-gradient(90deg,var(--accent1),var(--accent2));
+    opacity:.18;
+    display:block;
+  }
 
-    // fallback: server extraction
-    if (!text) {
-      if (!fileBase64) return res.status(400).json({ error: "Missing resume input." });
-      text = await extractTextFromFileBase64(fileBase64, mimeType || "");
-    }
+  /* Progress stepper */
+  .stepper{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+    margin:0 0 14px;
+  }
+  .step{
+    display:flex; align-items:center; gap:8px;
+    padding:8px 10px;
+    border-radius:999px;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--muted);
+    font-size:12px;
+    font-weight:700;
+  }
+  .dot{
+    width:10px; height:10px; border-radius:999px;
+    background: rgba(100,116,139,0.35);
+  }
+  .step.active{ color:var(--ink); border-color: rgba(37,99,235,0.35); }
+  .step.active .dot{ background: linear-gradient(90deg,var(--accent1),var(--accent2)); }
+  .step.done{ color:var(--ink); }
+  .step.done .dot{ background: #22c55e; }
 
-    // If still too small, it's likely image-based/secured PDF
-    if (text.replace(/\s/g,"").length < 120) {
-      return res.status(400).json({
-        error:
-          "We could not extract enough readable text from this PDF. " +
-          "Try: Print → Save as PDF (text-based), or upload a TXT version."
-      });
-    }
+  iframe{
+    width:100%;
+    height:720px; /* fallback; auto-resized after generate */
+    border:none;
+    border-radius:16px;
+    background:white;
+  }
 
-    // Keep head + tail (prevents losing Projects/Certifications at end)
-    if (text.length > 18000) {
-      const head = text.slice(0, 12000);
-      const tail = text.slice(-6000);
-      text = head + "\n\n---\n\n" + tail;
-    }
+  .hint{ font-size:12px; color:var(--muted); margin-top:-6px; margin-bottom:12px; }
+  .loader{
+    display:none;
+    margin-top:12px;
+    color:var(--muted);
+    font-weight:800;
+  }
+  .inline-alert{
+    display:none;
+    margin-top:10px;
+    padding:10px 12px;
+    border-radius:12px;
+    border:1px solid rgba(239,68,68,0.25);
+    background: rgba(239,68,68,0.07);
+    color:#991b1b;
+    font-size:13px;
+    font-weight:700;
+    white-space:pre-wrap;
+  }
 
-    const systemPrompt = `
-You are a premium portfolio website generator.
+  .small{ font-size:12px;color:var(--muted); margin-top:10px; }
+  details{ margin-top:10px; }
+  pre{
+    background:#0b1220;
+    color:#e2e8f0;
+    padding:12px;
+    border-radius:12px;
+    overflow:auto;
+    max-height:260px;
+    font-size:12px;
+  }
+</style>
+</head>
 
-OUTPUT:
-- Output ONLY complete standalone HTML (no markdown/backticks).
-- body { margin: 0; font-family: system-ui; }
-- Center content max-width: 900px.
-- Compact, recruiter-friendly layout.
-- Do NOT use fixed heights (no height:..., no 100vh).
-- Do NOT use overflow:hidden on body or major containers.
+<body>
+<div class="container">
 
-MUST PRESERVE CONTENT:
-- NEVER omit "Professional Experience" entries found in the resume text.
-- NEVER omit Projects found in the resume text.
-- If too many bullets, keep ALL roles/projects but limit to max 2 bullets each.
+  <div class="hero">
+    <img src="logo.png" alt="ElevateCV Logo">
+    <p>Transform Your Resume Into A Stunning Portfolio</p>
+  </div>
 
-HEADER:
-- Full-width dark navy bar (#0B2D45).
-- Large white name centered.
-- One-line contact row: Location | Phone | Email | LinkedIn
+  <div class="grid">
 
-SKILLS:
-.skills-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
+    <!-- Left: Controls -->
+    <div class="card">
 
-PDF:
-- Wrap each experience item and each project item in <div class="keep-together">...</div>
-- .keep-together { break-inside: avoid; page-break-inside: avoid; }
+      <div class="stepper">
+        <div class="step active" data-step="1"><span class="dot"></span> Upload</div>
+        <div class="step" data-step="2"><span class="dot"></span> Parse</div>
+        <div class="step" data-step="3"><span class="dot"></span> Generate</div>
+        <div class="step" data-step="4"><span class="dot"></span> Ready</div>
+      </div>
 
-Template Style: ${template || "Modern Minimal"}
+      <p class="label">Resume (PDF or TXT)</p>
+      <input type="file" id="file" accept=".pdf,.txt,application/pdf,text/plain">
+      <div class="hint">DOCX disabled for speed. PDF/TXT only.</div>
+
+      <p class="label">Choose a template</p>
+      <div class="templates">
+        <div class="tpl active" data-template="Modern Minimal" onclick="selectTemplate(this)">
+          <div class="tpl-top"><div class="tpl-title">Modern Minimal</div><div class="chip">Clean</div></div>
+          <div class="tpl-mini"><b></b></div>
+        </div>
+        <div class="tpl" data-template="Executive Blue" onclick="selectTemplate(this)">
+          <div class="tpl-top"><div class="tpl-title">Executive Blue</div><div class="chip">Corporate</div></div>
+          <div class="tpl-mini"><b></b></div>
+        </div>
+        <div class="tpl" data-template="Academic Green" onclick="selectTemplate(this)">
+          <div class="tpl-top"><div class="tpl-title">Academic Green</div><div class="chip">Scholarly</div></div>
+          <div class="tpl-mini"><b></b></div>
+        </div>
+      </div>
+
+      <p class="label">Target Role (optional)</p>
+      <input type="text" id="role" placeholder="e.g., Product Manager / Data Scientist">
+
+      <p class="label">Notes (optional)</p>
+      <textarea id="notes" placeholder="Highlight leadership, AI projects, measurable impact, links, etc."></textarea>
+
+      <div class="row">
+        <button class="btn" id="genBtn" onclick="generate()">Generate</button>
+        <button class="btn secondary" onclick="useDemo()">Try Demo Resume</button>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <button class="btn secondary" id="htmlBtn" onclick="downloadHTML()" disabled>Download HTML</button>
+        <button class="btn secondary" id="pdfBtn" onclick="downloadPDF()" disabled>Download PDF</button>
+      </div>
+
+      <div class="loader" id="loader">Working…</div>
+      <div class="inline-alert" id="alert"></div>
+
+      <details id="debugBox" style="display:none;">
+        <summary class="small">Show extracted text (debug)</summary>
+        <pre id="debugText"></pre>
+      </details>
+
+      <div class="small">Tip: If your resume is highly designed, try “Print → Save as PDF” and upload again.</div>
+    </div>
+
+    <!-- Right: Preview -->
+    <div class="card">
+      <iframe id="preview" title="Portfolio Preview"></iframe>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let generatedHTML = "";
+let selectedTemplate = "Modern Minimal";
+let lastExtractedText = "";
+
+const DEMO_RESUME_TEXT = `
+KRISHNA MURTHY K.
+Mumbai, India | +91-90000-00000 | krishna@email.com | linkedin.com/in/krishna
+
+SUMMARY
+AI/ML + Program Management professional with experience building product MVPs, leading delivery, and shipping user-facing apps.
+
+SKILLS
+Product Strategy, PRD, Go-To-Market, Python, FastAPI, AI Integrations, Prompting, System Design, Program Management, Stakeholder Management
+
+PROFESSIONAL EXPERIENCE
+Program Manager / AI Solutions — Company X (2023–2026)
+- Led cross-functional delivery for AI-enabled workflows.
+- Reduced manual effort by 60% through automation and tooling.
+
+PROJECTS
+ElevateCV — Resume-to-Portfolio Generator
+- Built a Vercel-deployed web app that converts resume text into a recruiter-ready portfolio.
+- Added export to HTML and PDF and template styles.
+
+EDUCATION
+B.Tech — Computer Science
 `.trim();
 
-    const userPrompt = `
-Target Role: ${role || "Not specified"}
-Extra Notes: ${notes || "None"}
+function cleanHTML(raw){
+  return String(raw || "").replace(/```html/gi,"").replace(/```/g,"").trim();
+}
 
-RESUME (DO NOT DROP EXPERIENCE/PROJECTS):
-${text}
-`.trim();
+function selectTemplate(el){
+  document.querySelectorAll(".tpl").forEach(x => x.classList.remove("active"));
+  el.classList.add("active");
+  selectedTemplate = el.getAttribute("data-template") || "Modern Minimal";
+}
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${key}`
-      },
-      body: JSON.stringify({
-        model: "gpt-3.5-turbo",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
-        temperature: 0.2,
-        max_tokens: 1400
-      })
+function setStep(step){
+  const steps = Array.from(document.querySelectorAll(".step"));
+  steps.forEach(s => {
+    const n = Number(s.getAttribute("data-step"));
+    s.classList.remove("active","done");
+    if (n < step) s.classList.add("done");
+    if (n === step) s.classList.add("active");
+  });
+}
+
+function showAlert(msg){
+  const a = document.getElementById("alert");
+  a.textContent = msg;
+  a.style.display = "block";
+}
+function hideAlert(){
+  const a = document.getElementById("alert");
+  a.textContent = "";
+  a.style.display = "none";
+}
+
+function setDebugText(text){
+  lastExtractedText = text || "";
+  const box = document.getElementById("debugBox");
+  const pre = document.getElementById("debugText");
+  if (!lastExtractedText) {
+    box.style.display = "none";
+    pre.textContent = "";
+    return;
+  }
+  box.style.display = "block";
+  pre.textContent = lastExtractedText.slice(0, 8000);
+}
+
+function toBase64(file){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = reject;
+  });
+}
+
+/**
+ * Improved PDF extraction:
+ * - sort by y desc then x asc
+ * - group items into "lines" by similar y (preserves bullets/roles)
+ */
+async function extractPdfTextClient(file){
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+  let full = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent({ includeMarkedContent: false });
+
+    const items = (content.items || [])
+      .map(it => ({
+        str: (it.str || "").trim(),
+        x: it.transform?.[4] || 0,
+        y: it.transform?.[5] || 0
+      }))
+      .filter(it => it.str);
+
+    items.sort((a,b) => (b.y - a.y) || (a.x - b.x));
+
+    const lines = [];
+    const lineThreshold = 3;
+    for (const it of items) {
+      let line = lines.find(l => Math.abs(l.y - it.y) <= lineThreshold);
+      if (!line) { line = { y: it.y, parts: [] }; lines.push(line); }
+      line.parts.push(it);
+    }
+
+    lines.sort((a,b) => b.y - a.y);
+
+    const pageLines = lines.map(l =>
+      l.parts.sort((a,b) => a.x - b.x).map(p => p.str).join(" ")
+    );
+
+    full.push(pageLines.join("\n").trim());
+  }
+
+  return full.join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+async function useDemo(){
+  hideAlert();
+  setStep(2);
+  document.getElementById("loader").style.display = "block";
+  document.getElementById("loader").textContent = "Using demo resume…";
+  setDebugText(DEMO_RESUME_TEXT);
+
+  await runGenerateRequest({
+    resumeText: DEMO_RESUME_TEXT,
+    mimeType: "text/plain",
+    role: document.getElementById("role").value,
+    notes: document.getElementById("notes").value,
+    template: selectedTemplate
+  });
+}
+
+async function generate(){
+  hideAlert();
+  setDebugText("");
+
+  const file = document.getElementById("file").files[0];
+  if(!file){
+    showAlert("Please upload a PDF or TXT resume (or click Try Demo Resume).");
+    return;
+  }
+
+  const isPdf = file.type === "application/pdf" || (file.name || "").toLowerCase().endsWith(".pdf");
+  const isTxt = file.type === "text/plain" || (file.name || "").toLowerCase().endsWith(".txt");
+  if(!isPdf && !isTxt){
+    showAlert("Only PDF or TXT is supported for faster generation.");
+    return;
+  }
+
+  document.getElementById("loader").style.display="block";
+  document.getElementById("loader").textContent="Reading file…";
+  setStep(1);
+
+  const payload = {
+    role: document.getElementById("role").value,
+    notes: document.getElementById("notes").value,
+    template: selectedTemplate
+  };
+
+  setStep(2);
+
+  if(isPdf){
+    document.getElementById("loader").textContent="Extracting text from PDF…";
+    try{
+      payload.resumeText = await extractPdfTextClient(file);
+      payload.mimeType = "application/pdf";
+      setDebugText(payload.resumeText);
+    } catch(e){
+      console.error("PDF.js extraction error:", e);
+      document.getElementById("loader").textContent="Fallback: uploading PDF to server…";
+      payload.fileBase64 = await toBase64(file);
+      payload.mimeType = "application/pdf";
+    }
+  } else {
+    document.getElementById("loader").textContent="Reading TXT…";
+    payload.resumeText = await file.text();
+    payload.mimeType = "text/plain";
+    setDebugText(payload.resumeText);
+  }
+
+  // If extraction produced very little, fall back to server PDF parse if possible
+  if(payload.resumeText && payload.resumeText.replace(/\s/g,"").length < 150 && isPdf){
+    document.getElementById("loader").textContent="Low text extracted. Uploading PDF to server for parsing…";
+    payload.fileBase64 = await toBase64(file);
+    delete payload.resumeText;
+  }
+
+  if(!payload.resumeText && !payload.fileBase64){
+    document.getElementById("loader").style.display="none";
+    setStep(1);
+    showAlert("We couldn't extract readable text from this file. Try: Print → Save as PDF, or upload TXT.");
+    return;
+  }
+
+  await runGenerateRequest(payload);
+}
+
+async function runGenerateRequest(payload){
+  const genBtn = document.getElementById("genBtn");
+  genBtn.disabled = true;
+  document.getElementById("htmlBtn").disabled = true;
+  document.getElementById("pdfBtn").disabled = true;
+
+  try{
+    setStep(3);
+    document.getElementById("loader").textContent = "Generating portfolio with AI…";
+
+    const response = await fetch("/api/generate",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify(payload)
     });
 
-    const data = await response.json();
-    if (!response.ok) {
-      return res.status(response.status).json({
-        error: data?.error?.message || "OpenAI request failed"
-      });
+    const data = await response.json().catch(()=> ({}));
+    if(!response.ok){
+      throw new Error(data?.error || "Generation failed. Please try again.");
     }
 
-    return res.status(200).json({ text: data?.choices?.[0]?.message?.content || "" });
-  } catch (err) {
-    return res.status(500).json({ error: String(err) });
+    generatedHTML = cleanHTML(data.text);
+
+    const iframe = document.getElementById("preview");
+    iframe.srcdoc = generatedHTML;
+
+    // Auto-resize iframe so no template looks cut
+    setTimeout(() => {
+      try {
+        const d = iframe.contentDocument || iframe.contentWindow.document;
+        const h = Math.max(d.body.scrollHeight, d.documentElement.scrollHeight);
+        iframe.style.height = (h + 20) + "px";
+      } catch (e) {}
+    }, 180);
+
+    setStep(4);
+    document.getElementById("loader").style.display="none";
+    document.getElementById("htmlBtn").disabled=false;
+    document.getElementById("pdfBtn").disabled=false;
+
+    if (window.innerWidth < 920) {
+      iframe.scrollIntoView({ behavior:"smooth", block:"start" });
+    }
+  }catch(e){
+    document.getElementById("loader").style.display="none";
+    setStep(1);
+    showAlert(e.message || String(e));
+  }finally{
+    genBtn.disabled = false;
   }
 }
+
+function downloadHTML(){
+  if(!generatedHTML){ showAlert("Generate a portfolio first."); return; }
+  const blob = new Blob([generatedHTML], { type:"text/html" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "portfolio.html";
+  a.click();
+}
+
+function downloadPDF(){
+  if(!generatedHTML){ showAlert("Generate a portfolio first."); return; }
+
+  const doc = new DOMParser().parseFromString(generatedHTML, "text/html");
+  const styleTags = Array.from(doc.querySelectorAll("style")).map(s => s.outerHTML).join("\n");
+
+  const wrapper = document.createElement("div");
+  wrapper.style.background = "white";
+  wrapper.style.width = "210mm";
+  wrapper.style.boxSizing = "border-box";
+  wrapper.style.margin = "0";
+  wrapper.style.padding = "0";
+
+  wrapper.innerHTML = `
+    <style>
+      @page { margin: 10mm; }
+      html, body { margin: 0 !important; padding: 0 !important; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+      * { box-sizing: border-box; }
+      #pdf-root, #pdf-root * { overflow: visible !important; }
+      #pdf-root { width: 210mm; padding: 0; margin: 0; }
+
+      .keep-together, section, article, .project, .experience, li {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+      }
+      h1, h2, h3 { break-after: avoid !important; page-break-after: avoid !important; }
+      p { orphans: 3; widows: 3; }
+    </style>
+    ${styleTags}
+    <div id="pdf-root">${doc.body ? doc.body.innerHTML : generatedHTML}</div>
+  `;
+
+  html2pdf().set({
+    filename:"portfolio.pdf",
+    margin: 0,
+    image:{type:"jpeg",quality:0.98},
+    html2canvas:{scale:2,useCORS:true,scrollY:0,windowWidth:794,backgroundColor:"#ffffff"},
+    jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
+    pagebreak:{mode:["css","legacy"]}
+  }).from(wrapper).save();
+}
+</script>
+</body>
+</html>
