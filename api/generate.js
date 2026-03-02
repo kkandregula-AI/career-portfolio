@@ -51,15 +51,13 @@ export default async function handler(req, res) {
 You are a premium portfolio website generator.
 
 CRITICAL RULES:
-- Output ONLY a complete standalone HTML document.
-- Do NOT include markdown.
-- Remove body margin (body { margin: 0; })
-- Keep layout compact (1–2 pages max).
-- Center content max-width 900px.
-- Avoid large top spacing.
-- Professional recruiter-friendly layout.
-- Skills MUST use responsive multi-column grid (min 3 columns desktop).
-- Use CSS grid like:
+- Output ONLY complete standalone HTML.
+- No markdown.
+- body { margin: 0; }
+- max-width: 900px centered layout.
+- Compact 1–2 page layout.
+- Professional recruiter-friendly design.
+- Skills must use multi-column grid layout:
 
 .skills-grid {
   display: grid;
