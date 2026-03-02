@@ -8,6 +8,9 @@
 <link rel="icon" type="image/png" href="logo.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
+<!-- Client-side PDF extraction (more reliable than serverless pdf parsers) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.js"></script>
+
 <style>
   :root{
     --bg1:#f8fafc; --bg2:#eef2ff;
@@ -314,13 +317,36 @@ function hideAlert(){
   a.style.display = "none";
 }
 
-function toBase64(file){
-  return new Promise((resolve,reject)=>{
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result.split(",")[1]);
-    reader.onerror = reject;
-  });
+// Robust: supports unicode in demo text
+function toBase64Utf8(str){
+  return btoa(unescape(encodeURIComponent(str)));
+}
+
+async function extractPdfTextClient(file){
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+  let fullText = "";
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent({ includeMarkedContent: false });
+
+    const items = (content.items || [])
+      .map(it => ({
+        str: (it.str || "").trim(),
+        x: it.transform?.[4] || 0,
+        y: it.transform?.[5] || 0
+      }))
+      .filter(it => it.str);
+
+    // Order: top-to-bottom, then left-to-right
+    items.sort((a,b) => (b.y - a.y) || (a.x - b.x));
+
+    // Join with spaces; PDF layouts can be tricky, but this is a strong baseline
+    fullText += items.map(i => i.str).join(" ") + "\n\n";
+  }
+
+  return fullText.replace(/\n{3,}/g, "\n\n").trim();
 }
 
 async function useDemo(){
@@ -329,8 +355,15 @@ async function useDemo(){
   document.getElementById("loader").style.display = "block";
   document.getElementById("loader").textContent = "Using demo resume…";
 
-  const base64 = btoa(unescape(encodeURIComponent(DEMO_RESUME_TEXT)));
-  await runGenerateRequest(base64, "text/plain");
+  const payload = {
+    resumeText: DEMO_RESUME_TEXT,
+    mimeType: "text/plain",
+    role: document.getElementById("role").value,
+    notes: document.getElementById("notes").value,
+    template: selectedTemplate
+  };
+
+  await runGenerateRequest(payload);
 }
 
 async function generate(){
@@ -342,44 +375,66 @@ async function generate(){
     return;
   }
 
-  const ok = (file.type === "application/pdf") || (file.type === "text/plain") || (file.name || "").toLowerCase().endsWith(".txt");
-  if(!ok){
+  const isPdf = file.type === "application/pdf" || (file.name || "").toLowerCase().endsWith(".pdf");
+  const isTxt = file.type === "text/plain" || (file.name || "").toLowerCase().endsWith(".txt");
+  if(!isPdf && !isTxt){
     showAlert("Only PDF or TXT is supported for faster generation.");
     return;
   }
 
   document.getElementById("loader").style.display="block";
-  document.getElementById("loader").textContent="Uploading resume…";
+  document.getElementById("loader").textContent="Reading file…";
   setStep(1);
 
-  const base64 = await toBase64(file);
-  await runGenerateRequest(base64, file.type || "text/plain");
+  const payload = {
+    role: document.getElementById("role").value,
+    notes: document.getElementById("notes").value,
+    template: selectedTemplate
+  };
+
+  setStep(2);
+  if(isPdf){
+    document.getElementById("loader").textContent="Extracting text from PDF…";
+    try{
+      payload.resumeText = await extractPdfTextClient(file);
+      payload.mimeType = "application/pdf";
+    } catch(e){
+      document.getElementById("loader").style.display="none";
+      setStep(1);
+      showAlert("PDF extraction failed in browser. Please try exporting PDF as 'Print to PDF' or upload TXT.");
+      return;
+    }
+  } else {
+    document.getElementById("loader").textContent="Reading TXT…";
+    payload.resumeText = await file.text();
+    payload.mimeType = "text/plain";
+  }
+
+  // Guard: if extraction is empty, prompt user
+  if(!payload.resumeText || payload.resumeText.replace(/\s/g,"").length < 80){
+    document.getElementById("loader").style.display="none";
+    setStep(1);
+    showAlert("We couldn't extract readable text from this file. Please upload a text-based PDF or TXT.");
+    return;
+  }
+
+  await runGenerateRequest(payload);
 }
 
-async function runGenerateRequest(fileBase64, mimeType){
+async function runGenerateRequest(payload){
   const genBtn = document.getElementById("genBtn");
   genBtn.disabled = true;
   document.getElementById("htmlBtn").disabled = true;
   document.getElementById("pdfBtn").disabled = true;
 
   try{
-    setStep(2);
-    document.getElementById("loader").textContent = "Parsing resume…";
-    await new Promise(r => setTimeout(r, 250));
-
     setStep(3);
     document.getElementById("loader").textContent = "Generating portfolio with AI…";
 
     const response = await fetch("/api/generate",{
       method:"POST",
       headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({
-        fileBase64,
-        mimeType,
-        role: document.getElementById("role").value,
-        notes: document.getElementById("notes").value,
-        template: selectedTemplate
-      })
+      body:JSON.stringify(payload)
     });
 
     const data = await response.json().catch(()=> ({}));
@@ -388,17 +443,18 @@ async function runGenerateRequest(fileBase64, mimeType){
     }
 
     generatedHTML = cleanHTML(data.text);
+
     const iframe = document.getElementById("preview");
     iframe.srcdoc = generatedHTML;
 
-    // Auto-resize iframe height so no template looks "cut"
+    // Auto-resize iframe so content isn't cut (Academic Green etc.)
     setTimeout(() => {
       try {
         const d = iframe.contentDocument || iframe.contentWindow.document;
         const h = Math.max(d.body.scrollHeight, d.documentElement.scrollHeight);
         iframe.style.height = (h + 20) + "px";
       } catch (e) {}
-    }, 150);
+    }, 180);
 
     setStep(4);
     document.getElementById("loader").style.display="none";
@@ -466,7 +522,13 @@ function downloadPDF(){
     filename:"portfolio.pdf",
     margin: 0,
     image:{type:"jpeg",quality:0.98},
-    html2canvas:{scale:2,useCORS:true,scrollY:0,windowWidth:794,backgroundColor:"#ffffff"},
+    html2canvas:{
+      scale:2,
+      useCORS:true,
+      scrollY:0,
+      windowWidth:794,
+      backgroundColor:"#ffffff"
+    },
     jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
     pagebreak:{mode:["css","legacy"]}
   }).from(wrapper).save();

@@ -1,6 +1,6 @@
-import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import pdf from "pdf-parse";
 
-const RATE_LIMIT_WINDOW = 60000; // 1 min
+const RATE_LIMIT_WINDOW = 60000;
 const MAX_REQUESTS = 5;
 const ipStore = new Map();
 
@@ -13,70 +13,13 @@ function checkRateLimit(ip) {
   return timestamps.length <= MAX_REQUESTS;
 }
 
-/**
- * Better PDF extraction using PDF.js:
- * - reads per page
- * - sorts text items by position (y desc, x asc)
- * - merges into a reasonable reading order
- */
-async function extractPdfTextWithPdfJs(buffer) {
-  const loadingTask = pdfjsLib.getDocument({ data: buffer });
-  const pdf = await loadingTask.promise;
-
-  let out = [];
-  for (let p = 1; p <= pdf.numPages; p++) {
-    const page = await pdf.getPage(p);
-    const textContent = await page.getTextContent({
-      includeMarkedContent: false,
-      disableCombineTextItems: false
-    });
-
-    const items = (textContent.items || [])
-      .map(it => {
-        const str = (it.str || "").trim();
-        const t = it.transform || [0,0,0,0,0,0];
-        const x = t[4] ?? 0;
-        const y = t[5] ?? 0;
-        return { str, x, y };
-      })
-      .filter(it => it.str.length > 0);
-
-    // Sort: top-to-bottom (y desc), left-to-right (x asc)
-    items.sort((a, b) => (b.y - a.y) || (a.x - b.x));
-
-    // Join with newline heuristics:
-    // If the next item is far away vertically, new line; else space.
-    let pageText = "";
-    let prev = null;
-    for (const it of items) {
-      if (!prev) {
-        pageText += it.str;
-      } else {
-        const dy = Math.abs(it.y - prev.y);
-        // 6–10 is typical line-height threshold in PDF units; tune as needed
-        if (dy > 8) pageText += "\n" + it.str;
-        else pageText += " " + it.str;
-      }
-      prev = it;
-    }
-
-    out.push(pageText.trim());
+async function extractTextFromFileBase64(fileBase64, mimeType) {
+  const buffer = Buffer.from(fileBase64, "base64");
+  if (mimeType === "application/pdf") {
+    const data = await pdf(buffer);
+    return data.text || "";
   }
-
-  // Clean up excessive blank lines
-  const finalText = out.join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
-  return finalText;
-}
-
-async function extractText(base64, mime) {
-  const buffer = Buffer.from(base64, "base64");
-
-  if (mime === "application/pdf") {
-    return await extractPdfTextWithPdfJs(buffer);
-  }
-
-  // TXT fallback
-  return buffer.toString("utf8");
+  return buffer.toString("utf8"); // txt
 }
 
 export default async function handler(req, res) {
@@ -91,37 +34,33 @@ export default async function handler(req, res) {
     const key = process.env.OPENAI_API_KEY;
     if (!key) return res.status(500).json({ error: "Missing OPENAI_API_KEY" });
 
-    const { fileBase64, mimeType, role, notes, template } = req.body || {};
-    if (!fileBase64) return res.status(400).json({ error: "Missing fileBase64" });
+    const { resumeText, fileBase64, mimeType, role, notes, template } = req.body || {};
 
     // PDF/TXT only
     const allowed = ["application/pdf", "text/plain", ""];
-    if (!allowed.includes(mimeType || "")) {
+    if (mimeType && !allowed.includes(mimeType)) {
       return res.status(400).json({ error: "Only PDF or TXT is supported." });
     }
 
-    let resumeText = await extractText(fileBase64, mimeType || "");
+    let text = (resumeText || "").trim();
 
-    // If PDF.js still gets almost nothing, it’s usually an image-only PDF.
-    if ((mimeType === "application/pdf") && resumeText.replace(/\s/g, "").length < 50) {
-      return res.status(400).json({
-        error:
-          "This PDF contains little/no extractable text (likely image-based or design-export). " +
-          "Please export as 'Print to PDF' / PDF-A, or upload a TXT version."
-      });
+    // Fallback: if client didn't send resumeText, use server extraction
+    if (!text) {
+      if (!fileBase64) return res.status(400).json({ error: "Missing resume input." });
+      text = await extractTextFromFileBase64(fileBase64, mimeType || "");
     }
 
-    // Keep head+tail so Projects at bottom aren’t lost
-    if (resumeText.length > 18000) {
-      const head = resumeText.slice(0, 12000);
-      const tail = resumeText.slice(-6000);
-      resumeText = head + "\n\n---\n\n" + tail;
+    // Keep head + tail so Projects at end don't get chopped
+    if (text.length > 18000) {
+      const head = text.slice(0, 12000);
+      const tail = text.slice(-6000);
+      text = head + "\n\n---\n\n" + tail;
     }
 
     const systemPrompt = `
 You are a premium portfolio website generator.
 
-OUTPUT RULES:
+OUTPUT:
 - Output ONLY complete standalone HTML (no markdown/backticks).
 - body { margin: 0; font-family: system-ui; }
 - Center content max-width: 900px.
@@ -129,16 +68,15 @@ OUTPUT RULES:
 - Do NOT use fixed heights (no height:..., no 100vh).
 - Do NOT use overflow:hidden on body or major containers.
 
-HEADER (MANDATORY):
+HEADER:
 - Full-width dark navy bar (#0B2D45).
 - Large white name centered.
 - One-line contact row: Location | Phone | Email | LinkedIn
 
 SKILLS:
-- MUST be multi-column grid:
 .skills-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
 
-PDF/PRINT:
+PDF:
 - Wrap each experience item and each project item in <div class="keep-together">...</div>
 - .keep-together { break-inside: avoid; page-break-inside: avoid; }
 
@@ -150,14 +88,14 @@ Target Role: ${role || "Not specified"}
 Extra Notes: ${notes || "None"}
 
 RESUME:
-${resumeText}
+${text}
 `.trim();
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`
+        "Authorization": `Bearer ${key}`
       },
       body: JSON.stringify({
         model: "gpt-3.5-turbo",
@@ -172,14 +110,10 @@ ${resumeText}
 
     const data = await response.json();
     if (!response.ok) {
-      return res.status(response.status).json({
-        error: data?.error?.message || "OpenAI request failed",
-        raw: data
-      });
+      return res.status(response.status).json({ error: data?.error?.message || "OpenAI request failed" });
     }
 
-    const text = data?.choices?.[0]?.message?.content || "";
-    return res.status(200).json({ text });
+    return res.status(200).json({ text: data?.choices?.[0]?.message?.content || "" });
   } catch (err) {
     return res.status(500).json({ error: String(err) });
   }
