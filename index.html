@@ -1,16 +1,26 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>ElevateCV</title>
 
-<link rel="icon" type="image/png" href="logo.png">
+<!-- Favicon + Logo -->
+<link rel="icon" type="image/png" href="/logo.png">
 
-<!-- Inter font -->
+<!-- PWA: manifest + iOS home-screen icon -->
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#2563EB">
+
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ElevateCV">
+
+<!-- Inter font (used in preview + export) -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-<!-- html2pdf (Chrome/Desktop reliable) -->
+<!-- html2pdf (works well on Chrome/desktop) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <!-- PDF.js (resume text extraction) -->
@@ -48,7 +58,7 @@
   .grid{ display:grid; grid-template-columns: 420px 1fr; gap:18px; align-items:start; }
   @media (max-width: 980px){
     .grid{ grid-template-columns:1fr; }
-    #previewCard{ order: 2; }
+    #previewCard{ order:2; }
   }
 
   .card{
@@ -223,7 +233,7 @@
 <div class="container">
 
   <div class="hero">
-    <img src="logo.png" alt="ElevateCV Logo">
+    <img src="/logo.png" alt="ElevateCV Logo">
     <p>Transform Your Resume Into A Stunning Portfolio</p>
   </div>
 
@@ -282,15 +292,15 @@
         </div>
       </div>
 
-      <!-- Custom template upload -->
+      <!-- Custom template upload (image only; NOT included in output) -->
       <p class="label" id="customLabel" style="display:none;">Upload custom template image (any image format)</p>
       <input type="file" id="customTemplateFile"
         accept="image/*,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tif,.tiff,.svg"
         style="display:none;">
       <div class="hint" id="customHint" style="display:none;">
-        <b>Note:</b> The image is used only as a <b>style reference</b> (colors/spacing inspiration).<br>
+        <b>Note:</b> The image is used only as a <b>style reference</b> (inspiration).<br>
         The generated portfolio will <b>NOT</b> match the exact template look and feel.<br>
-        The uploaded image will <b>NOT</b> appear inside the generated profile or in PDF/HTML downloads.
+        The uploaded image will <b>NOT</b> appear in preview or in PDF/HTML downloads.
       </div>
 
       <p class="label">Target Role (optional)</p>
@@ -310,7 +320,7 @@
       </div>
 
       <div class="hint" style="margin-top:10px;">
-        iPhone Safari: PDF uses <b>Print → Save as PDF</b> for best quality.
+        iPhone Safari: PDF uses <b>Print → Save as PDF</b> for best quality and correct A4 pages.
       </div>
 
       <div class="loader" id="loader">Working…</div>
@@ -327,7 +337,9 @@
         <pre id="debugText"></pre>
       </details>
 
-      <div class="hint" style="margin-top:10px;">Tip: For highly designed resumes, use “Print → Save as PDF” and upload again.</div>
+      <div class="hint" style="margin-top:10px;">
+        Tip: If a PDF is image-scanned, use “Print → Save as PDF” and upload again, or upload TXT.
+      </div>
     </div>
 
     <!-- Preview -->
@@ -339,12 +351,14 @@
 </div>
 
 <script>
+/* ========= State ========= */
 let selectedTemplate = "Modern Minimal";
 let portfolioData = null;
 let generatedHTML = "";
-let customTemplateImageDataUrl = "";
+let customTemplateImageDataUrl = ""; // stored only (not used in output)
 let customTemplateMode = "";
 
+/* ========= Demo ========= */
 const DEMO_RESUME_TEXT = `
 KRISHNA MURTHY K.
 Mumbai, India | +91-90000-00000 | krishna@email.com | linkedin.com/in/krishna
@@ -369,6 +383,7 @@ EDUCATION
 B.Tech — Computer Science
 `.trim();
 
+/* ========= UI Helpers ========= */
 function setStep(step){
   const steps = Array.from(document.querySelectorAll(".step"));
   steps.forEach(s => {
@@ -401,11 +416,13 @@ function updateMetaUI({ mode, jsonOk, html }){
 function showInPreview(html){
   const iframe = document.getElementById("preview");
   iframe.srcdoc = html;
+
+  // mobile-friendly height adjustment (best effort)
   setTimeout(() => {
     try {
       const d = iframe.contentDocument || iframe.contentWindow.document;
       const h = Math.max(d.body.scrollHeight, d.documentElement.scrollHeight);
-      iframe.style.height = (h + 24) + "px";
+      iframe.style.height = Math.max(520, h + 24) + "px";
     } catch (e) {}
   }, 250);
 }
@@ -422,6 +439,7 @@ function setDebugText(text){
   pre.textContent = String(text).slice(0, 12000);
 }
 
+/* ========= Template selection ========= */
 function selectTemplate(el){
   document.querySelectorAll(".tpl").forEach(x => x.classList.remove("active"));
   el.classList.add("active");
@@ -460,6 +478,7 @@ document.getElementById("customTemplateFile").addEventListener("change", async (
   }
 });
 
+/* ========= File helpers ========= */
 function readImageAsDataUrl(file){
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -478,6 +497,7 @@ function toBase64(file){
   });
 }
 
+/* ========= PDF text extraction (client) ========= */
 async function extractPdfTextClient(file){
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -517,6 +537,7 @@ async function extractPdfTextClient(file){
   return full.join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
+/* ========= Actions ========= */
 async function useDemo(){
   hideAlert();
   setDebugText(DEMO_RESUME_TEXT);
@@ -647,6 +668,7 @@ async function runGenerateRequest(payload, mode){
   }
 }
 
+/* ========= JSON normalize ========= */
 function normalizeProfileJson(x){
   const safeArr = (v) => Array.isArray(v) ? v.filter(Boolean) : [];
   const safeStr = (v) => (typeof v === "string" ? v : "").trim();
@@ -693,6 +715,7 @@ function normalizeProfileJson(x){
   };
 }
 
+/* ========= Template palette ========= */
 function templateTokens(templateName){
   if (templateName === "Executive Blue") {
     return { topBar:"#0B2D45", accent:"#2563EB", sub:"#0EA5E9", bg:"#fff", ink:"#0f172a", muted:"#475569", line:"#e5e7eb" };
@@ -703,6 +726,7 @@ function templateTokens(templateName){
   return { topBar:"#111827", accent:"#7C3AED", sub:"#2563EB", bg:"#fff", ink:"#0f172a", muted:"#475569", line:"#e5e7eb" };
 }
 
+/* ========= HTML rendering ========= */
 function escHtml(s){
   return String(s || "")
     .replaceAll("&","&amp;")
@@ -711,7 +735,6 @@ function escHtml(s){
     .replaceAll('"',"&quot;")
     .replaceAll("'","&#039;");
 }
-
 function fmtContact(c){
   const parts = [];
   if (c.location) parts.push(escHtml(c.location));
@@ -721,7 +744,6 @@ function fmtContact(c){
   if (c.website) parts.push(escHtml(c.website));
   return parts.join("  •  ");
 }
-
 function dateRange(start, end){
   const a = (start || "").trim();
   const b = (end || "").trim();
@@ -730,14 +752,13 @@ function dateRange(start, end){
   if (b) return escHtml(b);
   return "";
 }
-
 function renderBullets(bullets){
   if (!bullets || !bullets.length) return "";
   return `<ul class="bullets">${bullets.map(b => `<li>${escHtml(b)}</li>`).join("")}</ul>`;
 }
 
 function renderPortfolioHTML(data, templateName){
-  // Custom image template is not applied to output (safe, as requested)
+  // custom image is NOT used for output (as requested)
   if (templateName === "Custom Upload") templateName = "Modern Minimal";
   const t = templateTokens(templateName);
 
@@ -905,7 +926,7 @@ function renderPortfolioHTML(data, templateName){
 </html>`;
 }
 
-/* Downloads */
+/* ========= Downloads ========= */
 function downloadHTML(){
   if(!generatedHTML){ showAlert("Generate a profile first."); return; }
   const blob = new Blob([generatedHTML], { type:"text/html" });
@@ -927,7 +948,7 @@ async function downloadPDF(){
   const isIOS = /iPhone|iPad|iPod/i.test(ua);
   const isSafari = /Safari/i.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS/i.test(ua);
 
-  // iPhone Safari path: Print -> Save as PDF
+  // iPhone Safari path: Print -> Save as PDF (correct A4, consistent fonts)
   if (isIOS && isSafari) {
     const w = window.open("", "_blank");
     if (!w) {
@@ -938,11 +959,9 @@ async function downloadPDF(){
     w.document.write(generatedHTML);
     w.document.close();
 
-    // Wait for fonts in the new tab
     try { if (w.document.fonts && w.document.fonts.ready) await w.document.fonts.ready; } catch(e){}
     await new Promise(r => setTimeout(r, 250));
 
-    // Print dialog: user saves PDF to Files
     w.focus();
     w.print();
     return;
@@ -968,7 +987,7 @@ async function downloadPDF(){
     try { if (idoc.fonts && idoc.fonts.ready) await idoc.fonts.ready; } catch(e) {}
     await new Promise(r => setTimeout(r, 250));
 
-    // Force Inter + A4 portrait for capture
+    // Force Inter + A4 portrait for capture (prevents mixed fonts)
     const style = idoc.createElement("style");
     style.textContent = `
       @page { size: A4 portrait; margin: 10mm; }
@@ -1010,6 +1029,15 @@ async function downloadPDF(){
     showAlert("PDF export failed in this browser. Try Download HTML, or use iPhone Safari Print → Save as PDF.");
   }
 }
+</script>
+
+<!-- Service worker registration (optional; requires /service-worker.js in your repo) -->
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/service-worker.js").catch(()=>{});
+    });
+  }
 </script>
 
 </body>
