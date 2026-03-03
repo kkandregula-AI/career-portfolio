@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" href="logo.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-<!-- PDF.js (resume extraction + custom PDF template preview) -->
+<!-- PDF.js (resume extraction only) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.js"></script>
 <script>
   if (window.pdfjsLib?.GlobalWorkerOptions) {
@@ -103,7 +103,6 @@
   .tpl-title{ font-weight:950; font-size:13px; }
   .chip{ font-size:11px; color:var(--muted); border:1px solid var(--line); padding:3px 8px; border-radius:999px; background:#fff; font-weight:800; }
 
-  /* Distinct thumbnails */
   .tpl-mini{
     height:64px;
     border-radius:10px;
@@ -151,7 +150,7 @@
   #previewCard{ padding:0; overflow:hidden; }
   iframe{ width:100%; height:820px; border:none; background:white; }
 
-  .hint{ font-size:12px; color:var(--muted); margin-top:-6px; margin-bottom:12px; }
+  .hint{ font-size:12px; color:var(--muted); margin-top:-6px; margin-bottom:12px; line-height:1.45; }
   .loader{ display:none; margin-top:12px; color:var(--muted); font-weight:950; }
   .inline-alert{
     display:none;
@@ -250,7 +249,7 @@
         </div>
 
         <div class="tpl" data-template="Custom Upload" onclick="selectTemplate(this)">
-          <div class="tpl-top"><div class="tpl-title">Custom Upload</div><div class="chip">HTML/PDF/Image</div></div>
+          <div class="tpl-top"><div class="tpl-title">Custom Upload</div><div class="chip">Image only</div></div>
           <div class="tpl-mini custom">
             <div class="bar"></div><div class="line1"></div><div class="line2"></div>
             <div class="chips"><div class="chipdot"></div><div class="chipdot"></div><div class="chipdot"></div></div>
@@ -260,14 +259,14 @@
       </div>
 
       <!-- Custom template upload -->
-      <p class="label" id="customLabel" style="display:none;">Upload custom template (HTML, PDF, or Image)</p>
+      <p class="label" id="customLabel" style="display:none;">Upload custom template image (PNG/JPG/WEBP/GIF/SVG)</p>
       <input type="file" id="customTemplateFile"
-        accept=".html,.pdf,.png,.jpg,.jpeg,.webp,text/html,application/pdf,image/png,image/jpeg,image/webp"
+        accept=".png,.jpg,.jpeg,.webp,.gif,.svg,image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
         style="display:none;">
       <div class="hint" id="customHint" style="display:none;">
-        HTML must include <b>{{CONTENT}}</b> placeholder.<br>
-        PDF will be used as a visual theme (first page image), content will be injected below.<br>
-        Image will be used as a visual theme, content will be injected below.
+        <b>Note:</b> The image is used only as a <b>style reference</b> (colors/spacing inspiration).<br>
+        The generated portfolio will <b>NOT</b> match the exact template look and feel.<br>
+        The uploaded image will <b>NOT</b> appear inside the generated profile or in PDF/HTML downloads.
       </div>
 
       <p class="label">Target Role (optional)</p>
@@ -316,11 +315,9 @@ let selectedTemplate = "Modern Minimal";
 let portfolioData = null;
 let generatedHTML = "";
 
-/* Custom template state */
-let customTemplateHTML = "";        // uploaded HTML template
-let customTemplatePdfDataUrl = "";  // uploaded PDF template -> first page rendered to image
-let customTemplateImageDataUrl = ""; // uploaded image template
-let customTemplateMode = "";        // "html" | "pdf" | "image" | ""
+/* Image template is accepted but never shown in outputs */
+let customTemplateImageDataUrl = ""; // stored for future (optional) style extraction
+let customTemplateMode = "";         // "image" | ""
 
 const DEMO_RESUME_TEXT = `
 KRISHNA MURTHY K.
@@ -420,69 +417,32 @@ function selectTemplate(el){
   }
 }
 
-/* ---------- Custom Template Upload Handler ---------- */
+/* ---------- Custom Image Template Upload (stored, never displayed) ---------- */
 document.getElementById("customTemplateFile").addEventListener("change", async (e) => {
   hideAlert();
   const f = e.target.files?.[0];
   if (!f) return;
 
-  customTemplateHTML = "";
-  customTemplatePdfDataUrl = "";
-  customTemplateImageDataUrl = "";
-  customTemplateMode = "";
-
   const name = (f.name || "").toLowerCase();
   const type = (f.type || "").toLowerCase();
+  const isImg = type.startsWith("image/") || name.endsWith(".png") || name.endsWith(".jpg") || name.endsWith(".jpeg") || name.endsWith(".webp") || name.endsWith(".gif") || name.endsWith(".svg");
 
-  const isPdf  = type === "application/pdf" || name.endsWith(".pdf");
-  const isHtml = type === "text/html" || name.endsWith(".html");
-  const isImg  =
-    type.startsWith("image/") ||
-    name.endsWith(".png") || name.endsWith(".jpg") || name.endsWith(".jpeg") || name.endsWith(".webp");
-
-  if (isHtml) {
-    const txt = await f.text();
-    if (!txt.includes("{{CONTENT}}")) {
-      showAlert("Custom HTML template must include {{CONTENT}} placeholder.");
-      e.target.value = "";
-      return;
-    }
-    customTemplateHTML = txt;
-    customTemplateMode = "html";
-  } else if (isPdf) {
-    try {
-      customTemplatePdfDataUrl = await renderFirstPagePdfToImageDataUrl(f);
-      customTemplateMode = "pdf";
-    } catch (err) {
-      console.error(err);
-      showAlert("Could not read this PDF template. It may be very large or password-protected. Try: Print → Save as PDF, then upload again.");
-      e.target.value = "";
-      return;
-    }
-  } else if (isImg) {
-    try {
-      customTemplateImageDataUrl = await readImageAsDataUrl(f);
-      customTemplateMode = "image";
-    } catch (err) {
-      console.error(err);
-      showAlert("Could not read this image template. Try a PNG/JPG/WEBP under ~5MB.");
-      e.target.value = "";
-      return;
-    }
-  } else {
-    showAlert("Please upload a template as HTML, PDF, or an image (PNG/JPG/WEBP).");
+  if (!isImg) {
+    showAlert("Please upload an image template (PNG/JPG/WEBP/GIF/SVG).");
     e.target.value = "";
     return;
   }
 
-  if (portfolioData && selectedTemplate === "Custom Upload") {
-    generatedHTML = renderPortfolioHTML(portfolioData, "Custom Upload");
-    showInPreview(generatedHTML);
-    updateMetaUI({
-      mode: document.getElementById("metaMode")?.textContent?.replace("Mode: ","") || "-",
-      jsonOk: true,
-      html: generatedHTML
-    });
+  try{
+    customTemplateImageDataUrl = await readImageAsDataUrl(f);
+    customTemplateMode = "image";
+    // Not used in rendering; only kept as "reference" for future enhancements
+    showAlert("Template image uploaded. It will NOT appear in output. (Used only as a style reference.)");
+    setTimeout(hideAlert, 1800);
+  } catch(err){
+    console.error(err);
+    showAlert("Could not read this image template. Try another file.");
+    e.target.value = "";
   }
 });
 
@@ -493,58 +453,6 @@ function readImageAsDataUrl(file){
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
-}
-
-/* Robust + mobile-safe PDF first page render */
-async function renderFirstPagePdfToImageDataUrl(file){
-  const arrayBuffer = await file.arrayBuffer();
-
-  const loadingTask = pdfjsLib.getDocument({
-    data: arrayBuffer,
-    stopAtErrors: false,
-    disableFontFace: true,
-    useSystemFonts: true
-  });
-
-  let pdf;
-  try {
-    pdf = await loadingTask.promise;
-  } catch (err) {
-    const msg = String(err?.message || err);
-    if (msg.toLowerCase().includes("password")) {
-      throw new Error("This PDF template is password-protected. Please export an unlocked PDF and try again.");
-    }
-    throw err;
-  }
-
-  const page = await pdf.getPage(1);
-
-  // Cap canvas pixels to keep iOS stable
-  const MAX_PIXELS = 2_500_000;
-  const baseViewport = page.getViewport({ scale: 1.0 });
-  const basePixels = baseViewport.width * baseViewport.height;
-
-  let scale = Math.sqrt(MAX_PIXELS / Math.max(basePixels, 1));
-  scale = Math.min(Math.max(scale, 1.0), 1.6);
-
-  const viewport = page.getViewport({ scale });
-
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d", { alpha: false });
-
-  canvas.width = Math.floor(viewport.width);
-  canvas.height = Math.floor(viewport.height);
-
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  await page.render({
-    canvasContext: ctx,
-    viewport,
-    intent: "display"
-  }).promise;
-
-  return canvas.toDataURL("image/png");
 }
 
 function toBase64(file){
@@ -816,189 +724,10 @@ function renderBullets(bullets){
   return `<ul class="bullets">${bullets.map(b => `<li>${escHtml(b)}</li>`).join("")}</ul>`;
 }
 
-function ensureDoc(html){
-  const lower = String(html || "").toLowerCase();
-  if (lower.includes("<html") && lower.includes("</html>")) return html;
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>${html}</body></html>`;
-}
-
-/* content block for custom templates */
-function renderContentOnly(data){
-  const contactLine = fmtContact(data.contact || {});
-  const header = `
-    <header class="profile-header keep-together">
-      <h1 class="profile-name">${escHtml(data.name)}</h1>
-      ${data.title ? `<div class="profile-title">${escHtml(data.title)}</div>` : ""}
-      ${contactLine ? `<div class="profile-contact">${contactLine}</div>` : ""}
-    </header>
-  `;
-
-  const summary = data.summary ? `<section class="section"><h2>Summary</h2><p>${escHtml(data.summary)}</p></section>` : "";
-  const skills = (data.skills && data.skills.length)
-    ? `<section class="section"><h2>Skills</h2><div class="skills-grid">${data.skills.map(s => `<div class="skill">${escHtml(s)}</div>`).join("")}</div></section>`
-    : "";
-
-  const experience = (data.experience && data.experience.length)
-    ? `<section class="section"><h2>Professional Experience</h2>
-        ${data.experience.map(e => `
-          <div class="keep-together item">
-            <div class="item-top">
-              <div class="item-left">
-                <div class="item-title">${escHtml(e.role || "")}${e.company ? ` <span class="at">@</span> ${escHtml(e.company)}` : ""}</div>
-                <div class="item-sub">${[e.location].filter(Boolean).map(escHtml).join(" • ")}</div>
-              </div>
-              <div class="item-right">${dateRange(e.start, e.end)}</div>
-            </div>
-            ${renderBullets(e.bullets)}
-          </div>
-        `).join("")}
-      </section>`
-    : "";
-
-  const projects = (data.projects && data.projects.length)
-    ? `<section class="section"><h2>Projects</h2>
-        ${data.projects.map(p => `
-          <div class="keep-together item">
-            <div class="item-top">
-              <div class="item-left">
-                <div class="item-title">${escHtml(p.name)}</div>
-                <div class="item-sub">
-                  ${p.link ? `<span class="link">${escHtml(p.link)}</span>` : ""}
-                  ${p.tech && p.tech.length ? `${p.link ? " • " : ""}${escHtml(p.tech.join(", "))}` : ""}
-                </div>
-              </div>
-            </div>
-            ${renderBullets(p.bullets)}
-          </div>
-        `).join("")}
-      </section>`
-    : "";
-
-  const education = (data.education && data.education.length)
-    ? `<section class="section"><h2>Education</h2>
-        ${data.education.map(ed => `
-          <div class="keep-together item">
-            <div class="item-top">
-              <div class="item-left">
-                <div class="item-title">${escHtml(ed.degree || "")}${ed.school ? ` <span class="at">@</span> ${escHtml(ed.school)}` : ""}</div>
-                <div class="item-sub">${escHtml(ed.details || "")}</div>
-              </div>
-              <div class="item-right">${dateRange(ed.start, ed.end)}</div>
-            </div>
-          </div>
-        `).join("")}
-      </section>`
-    : "";
-
-  const certs = (data.certifications && data.certifications.length)
-    ? `<section class="section"><h2>Certifications</h2><ul class="bullets">${data.certifications.map(c => `<li>${escHtml(c)}</li>`).join("")}</ul></section>`
-    : "";
-
-  const links = (data.links && data.links.length)
-    ? `<section class="section"><h2>Links</h2><ul class="bullets">${data.links.map(l => `<li><strong>${escHtml(l.label || "Link")}:</strong> ${escHtml(l.url)}</li>`).join("")}</ul></section>`
-    : "";
-
-  return `<div class="wrap">${header}${summary}${skills}${experience}${projects}${education}${certs}${links}</div>`;
-}
-
-/* Render final HTML */
 function renderPortfolioHTML(data, templateName){
-  if (templateName === "Custom Upload") {
-    const contentOnly = renderContentOnly(data);
-
-    if (customTemplateMode === "html" && customTemplateHTML && customTemplateHTML.includes("{{CONTENT}}")) {
-      return ensureDoc(customTemplateHTML.replace("{{CONTENT}}", contentOnly));
-    }
-
-    if (customTemplateMode === "pdf" && customTemplatePdfDataUrl) {
-      return `
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escHtml(data.name)} — Portfolio</title>
-<style>
-  *{ box-sizing:border-box; }
-  html,body{ margin:0; padding:0; background:#fff; color:#0f172a; font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial; }
-  .heroimg{ width:100%; border-bottom:1px solid #e5e7eb; background:#fff; }
-  .heroimg img{ width:100%; max-height:320px; object-fit:cover; display:block; }
-  .wrap{ max-width:900px; margin:0 auto; padding:18px; }
-  .section{ padding:14px 0; border-bottom:1px solid #e5e7eb; }
-  .section:last-child{ border-bottom:none; }
-  h2{ margin:0 0 10px; font-size:14px; text-transform:uppercase; letter-spacing:.12em; color:#111827; }
-  p{ margin:0; line-height:1.55; }
-  .skills-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-top:8px; }
-  .skill{ border:1px solid #e5e7eb; border-radius:12px; padding:8px 10px; font-weight:800; background:#fff; }
-  .item{ padding:10px 0; }
-  .item-top{ display:flex; justify-content:space-between; gap:14px; align-items:flex-start; }
-  .item-title{ font-weight:900; }
-  .item-sub{ margin-top:4px; color:#475569; font-weight:700; font-size:12px; }
-  .item-right{ color:#475569; font-weight:800; font-size:12px; white-space:nowrap; }
-  .at{ color:#475569; font-weight:800; }
-  .link{ color:#0ea5e9; font-weight:900; }
-  .bullets{ margin:8px 0 0 18px; padding:0; }
-  .bullets li{ margin:6px 0; line-height:1.45; }
-  .keep-together{ break-inside:avoid; page-break-inside:avoid; }
-  .profile-name{ margin:0; font-size:30px; font-weight:950; }
-  .profile-title{ margin-top:6px; font-weight:800; color:#334155; }
-  .profile-contact{ margin-top:10px; font-size:13px; font-weight:800; color:#475569; }
-  @media print { .keep-together{ break-inside:avoid; page-break-inside:avoid; } }
-</style>
-</head>
-<body>
-  <div class="heroimg"><img src="${customTemplatePdfDataUrl}" alt="Template theme"></div>
-  ${contentOnly}
-</body>
-</html>`;
-    }
-
-    if (customTemplateMode === "image" && customTemplateImageDataUrl) {
-      return `
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escHtml(data.name)} — Portfolio</title>
-<style>
-  *{ box-sizing:border-box; }
-  html,body{ margin:0; padding:0; background:#fff; color:#0f172a; font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial; }
-  .heroimg{ width:100%; border-bottom:1px solid #e5e7eb; background:#fff; }
-  .heroimg img{ width:100%; max-height:320px; object-fit:cover; display:block; }
-  .wrap{ max-width:900px; margin:0 auto; padding:18px; }
-  .section{ padding:14px 0; border-bottom:1px solid #e5e7eb; }
-  .section:last-child{ border-bottom:none; }
-  h2{ margin:0 0 10px; font-size:14px; text-transform:uppercase; letter-spacing:.12em; color:#111827; }
-  p{ margin:0; line-height:1.55; }
-  .skills-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-top:8px; }
-  .skill{ border:1px solid #e5e7eb; border-radius:12px; padding:8px 10px; font-weight:800; background:#fff; }
-  .item{ padding:10px 0; }
-  .item-top{ display:flex; justify-content:space-between; gap:14px; align-items:flex-start; }
-  .item-title{ font-weight:900; }
-  .item-sub{ margin-top:4px; color:#475569; font-weight:700; font-size:12px; }
-  .item-right{ color:#475569; font-weight:800; font-size:12px; white-space:nowrap; }
-  .at{ color:#475569; font-weight:800; }
-  .link{ color:#0ea5e9; font-weight:900; }
-  .bullets{ margin:8px 0 0 18px; padding:0; }
-  .bullets li{ margin:6px 0; line-height:1.45; }
-  .keep-together{ break-inside:avoid; page-break-inside:avoid; }
-  .profile-name{ margin:0; font-size:30px; font-weight:950; }
-  .profile-title{ margin-top:6px; font-weight:800; color:#334155; }
-  .profile-contact{ margin-top:10px; font-size:13px; font-weight:800; color:#475569; }
-  @media print { .keep-together{ break-inside:avoid; page-break-inside:avoid; } }
-</style>
-</head>
-<body>
-  <div class="heroimg"><img src="${customTemplateImageDataUrl}" alt="Template theme"></div>
-  ${contentOnly}
-</body>
-</html>`;
-    }
-
-    // fallback safely
-    templateName = "Modern Minimal";
-  }
+  // Custom upload is image-only and NOT applied to output.
+  // We keep it safe: it never inserts the image into generated HTML/PDF.
+  if (templateName === "Custom Upload") templateName = "Modern Minimal";
 
   const t = templateTokens(templateName);
   const contactLine = fmtContact(data.contact || {});
@@ -1173,4 +902,4 @@ function downloadPDF(){
 }
 </script>
 </body>
-</html>
+</html>    
