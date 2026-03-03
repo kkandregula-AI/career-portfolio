@@ -103,14 +103,56 @@
   .tpl-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
   .tpl-title{ font-weight:950; font-size:13px; }
   .chip{ font-size:11px; color:var(--muted); border:1px solid var(--line); padding:3px 8px; border-radius:999px; background:#fff; font-weight:800; }
+
+  /* --- Template thumbnails (distinct per template) --- */
   .tpl-mini{
-    height:54px;border-radius:10px;border:1px solid rgba(0,0,0,0.04);
-    background: linear-gradient(180deg, rgba(2,6,23,0.03), rgba(2,6,23,0.00));
-    position:relative; overflow:hidden;
+    height:64px;
+    border-radius:10px;
+    border:1px solid rgba(0,0,0,0.06);
+    background:#fff;
+    position:relative;
+    overflow:hidden;
   }
-  .tpl-mini::before{ content:""; position:absolute; left:10px; top:10px; width:44%; height:8px; border-radius:999px; background: rgba(15,23,42,0.12); }
-  .tpl-mini::after{ content:""; position:absolute; left:10px; top:24px; width:70%; height:6px; border-radius:999px; background: rgba(15,23,42,0.08); }
-  .tpl-mini b{ position:absolute; right:-18px; bottom:-18px; width:60px; height:60px; border-radius:18px; background: linear-gradient(90deg,var(--accent1),var(--accent2)); opacity:.18; display:block; }
+  .tpl-mini .bar{
+    position:absolute; left:0; top:0; right:0; height:16px;
+    opacity:0.95;
+  }
+  .tpl-mini .line1{
+    position:absolute; left:10px; top:22px; height:7px; width:42%;
+    border-radius:999px;
+    opacity:0.22;
+    background:#0f172a;
+  }
+  .tpl-mini .line2{
+    position:absolute; left:10px; top:34px; height:6px; width:68%;
+    border-radius:999px;
+    opacity:0.14;
+    background:#0f172a;
+  }
+  .tpl-mini .chips{
+    position:absolute; left:10px; bottom:10px;
+    display:flex; gap:6px;
+  }
+  .tpl-mini .chipdot{
+    width:18px; height:7px;
+    border-radius:999px;
+    opacity:0.25;
+    background:#0f172a;
+  }
+  .tpl-mini .blob{
+    position:absolute; right:-18px; bottom:-18px;
+    width:70px; height:70px;
+    border-radius:18px;
+    opacity:0.22;
+  }
+  .tpl-mini.minimal .bar{ background:#111827; }
+  .tpl-mini.minimal .blob{ background:#7C3AED; }
+
+  .tpl-mini.corporate .bar{ background:#0B2D45; }
+  .tpl-mini.corporate .blob{ background:#2563EB; }
+
+  .tpl-mini.academic .bar{ background:#0F3D2E; }
+  .tpl-mini.academic .blob{ background:#0F766E; }
 
   /* Stepper */
   .stepper{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:0 0 14px; }
@@ -207,15 +249,41 @@
       <div class="templates">
         <div class="tpl active" data-template="Modern Minimal" onclick="selectTemplate(this)">
           <div class="tpl-top"><div class="tpl-title">Modern Minimal</div><div class="chip">Clean</div></div>
-          <div class="tpl-mini"><b></b></div>
+          <div class="tpl-mini minimal">
+            <div class="bar"></div>
+            <div class="line1"></div>
+            <div class="line2"></div>
+            <div class="chips">
+              <div class="chipdot"></div><div class="chipdot"></div><div class="chipdot"></div>
+            </div>
+            <div class="blob"></div>
+          </div>
         </div>
+
         <div class="tpl" data-template="Executive Blue" onclick="selectTemplate(this)">
           <div class="tpl-top"><div class="tpl-title">Executive Blue</div><div class="chip">Corporate</div></div>
-          <div class="tpl-mini"><b></b></div>
+          <div class="tpl-mini corporate">
+            <div class="bar"></div>
+            <div class="line1"></div>
+            <div class="line2"></div>
+            <div class="chips">
+              <div class="chipdot"></div><div class="chipdot"></div><div class="chipdot"></div><div class="chipdot"></div>
+            </div>
+            <div class="blob"></div>
+          </div>
         </div>
+
         <div class="tpl" data-template="Academic Green" onclick="selectTemplate(this)">
           <div class="tpl-top"><div class="tpl-title">Academic Green</div><div class="chip">Scholarly</div></div>
-          <div class="tpl-mini"><b></b></div>
+          <div class="tpl-mini academic">
+            <div class="bar"></div>
+            <div class="line1"></div>
+            <div class="line2"></div>
+            <div class="chips">
+              <div class="chipdot"></div><div class="chipdot"></div>
+            </div>
+            <div class="blob"></div>
+          </div>
         </div>
       </div>
 
@@ -600,7 +668,6 @@ function normalizeProfileJson(x){
     })).filter(l => l.url || l.label)
   };
 
-  // Basic fallback name
   if (!norm.name) norm.name = "Your Name";
   return norm;
 }
@@ -609,7 +676,6 @@ function normalizeProfileJson(x){
    Template Rendering (single column)
 ----------------------------*/
 function templateTokens(templateName){
-  // Single column, PDF-safe (no complex multi-col)
   if (templateName === "Executive Blue") {
     return {
       topBar: "#0B2D45",
@@ -807,6 +873,7 @@ function renderPortfolioHTML(data, templateName){
     color:var(--accent);
   }
   p{ margin:0; color:var(--ink); line-height:1.55; }
+
   .skills-grid{
     display:grid;
     grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));
