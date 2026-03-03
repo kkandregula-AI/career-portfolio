@@ -39,10 +39,27 @@ async function callOpenAI({ key, messages, maxTokens }) {
 
   const j = await resp.json();
   if (!resp.ok) {
-    const msg = j?.error?.message || "OpenAI request failed";
-    throw new Error(msg);
+    throw new Error(j?.error?.message || "OpenAI request failed");
   }
   return j;
+}
+
+function stripMarkdownFences(s) {
+  return String(s || "").replace(/```html/gi, "").replace(/```/g, "").trim();
+}
+
+function hasHtmlClose(s) {
+  const t = String(s || "").toLowerCase();
+  return t.includes("</html>");
+}
+
+function ensureHtmlClosed(s) {
+  // If model forgot closings, append safe closings.
+  let out = String(s || "").trim();
+  const low = out.toLowerCase();
+  if (!low.includes("</body>")) out += "\n</body>";
+  if (!low.includes("</html>")) out += "\n</html>";
+  return out;
 }
 
 export default async function handler(req, res) {
@@ -59,7 +76,6 @@ export default async function handler(req, res) {
 
     const { resumeText, fileBase64, mimeType, role, notes, template } = req.body || {};
 
-    // PDF/TXT only
     const allowed = ["application/pdf", "text/plain", ""];
     if (mimeType && !allowed.includes(mimeType)) {
       return res.status(400).json({ error: "Only PDF or TXT is supported." });
@@ -67,13 +83,13 @@ export default async function handler(req, res) {
 
     let text = (resumeText || "").trim();
 
-    // fallback: server extraction if browser extraction not provided
+    // Fallback: server extraction
     if (!text) {
       if (!fileBase64) return res.status(400).json({ error: "Missing resume input." });
       text = await extractTextFromFileBase64(fileBase64, mimeType || "");
     }
 
-    // Too little text => image-based/protected PDF
+    // Too little text => image/protected PDF or extraction failure
     if (text.replace(/\s/g, "").length < 120) {
       return res.status(400).json({
         error:
@@ -82,10 +98,15 @@ export default async function handler(req, res) {
       });
     }
 
-    // Keep head + tail (prevents losing Projects/Certifications at end)
-    if (text.length > 18_000) {
-      const head = text.slice(0, 12_000);
-      const tail = text.slice(-6_000);
+    /**
+     * IMPORTANT:
+     * Don’t chop too aggressively. We want full experience/projects.
+     * Still protect token usage by using head+tail if huge.
+     */
+    const HARD_LIMIT = 28_000; // increased from 18k
+    if (text.length > HARD_LIMIT) {
+      const head = text.slice(0, 18_000);
+      const tail = text.slice(-10_000);
       text = head + "\n\n---\n\n" + tail;
     }
 
@@ -95,14 +116,16 @@ You are a premium portfolio website generator.
 OUTPUT:
 - Output ONLY complete standalone HTML (no markdown/backticks).
 - Use natural document flow.
-- Do NOT use fixed heights (no height:..., no 100vh).
+- Do NOT use fixed heights (no 100vh).
 - Do NOT use overflow:hidden on body or major containers.
-- Use max-width: 900px and centered layout.
+- Center layout with max-width: 900px.
+- Use compact spacing.
 
-MUST PRESERVE CONTENT:
-- NEVER omit any Professional Experience entries found in the resume text.
-- NEVER omit Projects found in the resume text.
-- If too many bullets, keep ALL roles/projects but limit to max 2 bullets each (do not drop roles).
+COMPLETENESS (CRITICAL):
+- NEVER omit Professional Experience entries found in the resume.
+- NEVER omit Projects found in the resume.
+- If many bullets, keep ALL roles/projects but limit to max 2 bullets each (do not drop items).
+- You MUST return a COMPLETE HTML document with closing tags </body></html>.
 
 HEADER:
 - Full-width dark navy bar (#0B2D45).
@@ -116,10 +139,7 @@ PDF:
 - Wrap each experience item and each project item in <div class="keep-together">...</div>
 - .keep-together { break-inside: avoid; page-break-inside: avoid; }
 
-STYLE:
-- Keep sections concise. Avoid long paragraphs.
-- Prefer compact spacing.
-- Template Style: ${template || "Modern Minimal"}
+Template Style: ${template || "Modern Minimal"}
 `.trim();
 
     const userPrompt = `
@@ -135,39 +155,48 @@ ${text}
       { role: "user", content: userPrompt }
     ];
 
-    // 1) First pass
+    /**
+     * Robust continuation loop:
+     * Keep asking to continue if model hit token limit.
+     * Stop when:
+     *  - finish_reason != "length" AND we have </html>
+     *  - OR we reach maxPasses
+     */
     let out = "";
-    const first = await callOpenAI({ key, messages: baseMessages, maxTokens: 2800 });
-    out += first?.choices?.[0]?.message?.content || "";
-    const finish1 = first?.choices?.[0]?.finish_reason;
+    let passes = 0;
+    const maxPasses = 4;          // up to 4 chunks
+    const firstMaxTokens = 3000;  // bigger initial chunk
+    const nextMaxTokens = 1800;   // continuation chunks
 
-    // 2) Continue if truncated by token limit
-    if (finish1 === "length") {
-      const contMsgs = [
+    // First pass
+    const first = await callOpenAI({ key, messages: baseMessages, maxTokens: firstMaxTokens });
+    let chunk = stripMarkdownFences(first?.choices?.[0]?.message?.content || "");
+    out += chunk;
+    let finish = first?.choices?.[0]?.finish_reason;
+    passes++;
+
+    // Continue while truncated OR missing closing
+    while (passes < maxPasses && (finish === "length" || !hasHtmlClose(out))) {
+      const continueMessages = [
         ...baseMessages,
         { role: "assistant", content: out },
         {
           role: "user",
           content:
-            "Continue EXACTLY where you stopped. Output ONLY the remaining HTML. " +
-            "Do not repeat earlier content. Ensure proper closing tags (including </body></html>)."
+            "Continue EXACTLY from where you stopped. Output ONLY the remaining HTML. " +
+            "Do NOT repeat earlier content. Ensure final output ends with </body></html>."
         }
       ];
 
-      const second = await callOpenAI({ key, messages: contMsgs, maxTokens: 1800 });
-      out += "\n" + (second?.choices?.[0]?.message?.content || "");
+      const nxt = await callOpenAI({ key, messages: continueMessages, maxTokens: nextMaxTokens });
+      const nxtChunk = stripMarkdownFences(nxt?.choices?.[0]?.message?.content || "");
+      out += "\n" + nxtChunk;
+      finish = nxt?.choices?.[0]?.finish_reason;
+      passes++;
     }
 
-    // Safety: if still missing closing tags, attempt one more short continuation
-    if (!out.includes("</html>")) {
-      const contMsgs2 = [
-        ...baseMessages,
-        { role: "assistant", content: out },
-        { role: "user", content: "Finish the HTML document by outputting ONLY missing closing tags/ending content. No repeats." }
-      ];
-      const third = await callOpenAI({ key, messages: contMsgs2, maxTokens: 400 });
-      out += "\n" + (third?.choices?.[0]?.message?.content || "");
-    }
+    // Final safety: force closings if still missing
+    out = ensureHtmlClosed(out);
 
     return res.status(200).json({ text: out });
   } catch (err) {

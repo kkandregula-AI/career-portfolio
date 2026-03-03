@@ -66,7 +66,7 @@
     padding:12px 16px;
     border:none;
     border-radius:12px;
-    font-weight:700;
+    font-weight:800;
     cursor:pointer;
     background:linear-gradient(90deg,var(--accent1),var(--accent2));
     color:white;
@@ -75,6 +75,7 @@
     background:#f1f5f9;
     color:var(--ink);
     border:1px solid var(--line);
+    font-weight:800;
   }
   .btn:disabled{ opacity:.55; cursor:not-allowed; }
 
@@ -101,7 +102,7 @@
     box-shadow: 0 12px 30px rgba(37,99,235,0.12);
   }
   .tpl-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
-  .tpl-title{ font-weight:800; font-size:13px; }
+  .tpl-title{ font-weight:900; font-size:13px; }
   .chip{ font-size:11px; color:var(--muted); border:1px solid var(--line); padding:3px 8px; border-radius:999px; background:#fff; }
   .tpl-mini{
     height:54px;
@@ -147,7 +148,7 @@
     background:#fff;
     color:var(--muted);
     font-size:12px;
-    font-weight:700;
+    font-weight:800;
   }
   .dot{
     width:10px; height:10px; border-radius:999px;
@@ -171,7 +172,7 @@
     display:none;
     margin-top:12px;
     color:var(--muted);
-    font-weight:800;
+    font-weight:900;
   }
   .inline-alert{
     display:none;
@@ -182,11 +183,27 @@
     background: rgba(239,68,68,0.07);
     color:#991b1b;
     font-size:13px;
-    font-weight:700;
+    font-weight:800;
     white-space:pre-wrap;
   }
 
   .small{ font-size:12px;color:var(--muted); margin-top:10px; }
+  .meta{
+    margin-top:10px;
+    font-size:12px;
+    color:var(--muted);
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .pill{
+    border:1px solid var(--line);
+    background:#fff;
+    padding:5px 10px;
+    border-radius:999px;
+    font-weight:800;
+  }
+
   details{ margin-top:10px; }
   pre{
     background:#0b1220;
@@ -259,6 +276,12 @@
       <div class="loader" id="loader">Working…</div>
       <div class="inline-alert" id="alert"></div>
 
+      <div class="meta" id="meta" style="display:none;">
+        <span class="pill" id="metaChars">Output: 0 chars</span>
+        <span class="pill" id="metaClosed">HTML: not closed</span>
+        <span class="pill" id="metaMode">Mode: -</span>
+      </div>
+
       <details id="debugBox" style="display:none;">
         <summary class="small">Show extracted text (debug)</summary>
         <pre id="debugText"></pre>
@@ -307,6 +330,9 @@ B.Tech — Computer Science
 function cleanHTML(raw){
   return String(raw || "").replace(/```html/gi,"").replace(/```/g,"").trim();
 }
+function isHtmlClosed(s){
+  return String(s || "").toLowerCase().includes("</html>");
+}
 
 function selectTemplate(el){
   document.querySelectorAll(".tpl").forEach(x => x.classList.remove("active"));
@@ -333,6 +359,14 @@ function hideAlert(){
   const a = document.getElementById("alert");
   a.textContent = "";
   a.style.display = "none";
+}
+
+function updateMeta({ html, mode }){
+  const meta = document.getElementById("meta");
+  meta.style.display = "flex";
+  document.getElementById("metaChars").textContent = `Output: ${String(html || "").length} chars`;
+  document.getElementById("metaClosed").textContent = isHtmlClosed(html) ? "HTML: closed" : "HTML: not closed";
+  document.getElementById("metaMode").textContent = `Mode: ${mode || "-"}`;
 }
 
 function setDebugText(text){
@@ -403,10 +437,11 @@ async function extractPdfTextClient(file){
 
 async function useDemo(){
   hideAlert();
-  setStep(2);
+  setDebugText(DEMO_RESUME_TEXT);
+
   document.getElementById("loader").style.display = "block";
   document.getElementById("loader").textContent = "Using demo resume…";
-  setDebugText(DEMO_RESUME_TEXT);
+  setStep(2);
 
   await runGenerateRequest({
     resumeText: DEMO_RESUME_TEXT,
@@ -414,7 +449,7 @@ async function useDemo(){
     role: document.getElementById("role").value,
     notes: document.getElementById("notes").value,
     template: selectedTemplate
-  });
+  }, "demo");
 }
 
 async function generate(){
@@ -446,30 +481,35 @@ async function generate(){
 
   setStep(2);
 
+  let mode = "-";
   if(isPdf){
     document.getElementById("loader").textContent="Extracting text from PDF…";
     try{
       payload.resumeText = await extractPdfTextClient(file);
       payload.mimeType = "application/pdf";
       setDebugText(payload.resumeText);
+      mode = "pdfjs";
     } catch(e){
       console.error("PDF.js extraction error:", e);
       document.getElementById("loader").textContent="Fallback: uploading PDF to server…";
       payload.fileBase64 = await toBase64(file);
       payload.mimeType = "application/pdf";
+      mode = "server-fallback";
     }
   } else {
     document.getElementById("loader").textContent="Reading TXT…";
     payload.resumeText = await file.text();
     payload.mimeType = "text/plain";
     setDebugText(payload.resumeText);
+    mode = "txt";
   }
 
-  // If extraction produced very little, fall back to server PDF parse if possible
+  // If extracted text is too small, fall back to server parse (PDF only)
   if(payload.resumeText && payload.resumeText.replace(/\s/g,"").length < 150 && isPdf){
     document.getElementById("loader").textContent="Low text extracted. Uploading PDF to server for parsing…";
     payload.fileBase64 = await toBase64(file);
     delete payload.resumeText;
+    mode = "server-fallback";
   }
 
   if(!payload.resumeText && !payload.fileBase64){
@@ -479,10 +519,10 @@ async function generate(){
     return;
   }
 
-  await runGenerateRequest(payload);
+  await runGenerateRequest(payload, mode);
 }
 
-async function runGenerateRequest(payload){
+async function runGenerateRequest(payload, mode){
   const genBtn = document.getElementById("genBtn");
   genBtn.disabled = true;
   document.getElementById("htmlBtn").disabled = true;
@@ -505,17 +545,20 @@ async function runGenerateRequest(payload){
 
     generatedHTML = cleanHTML(data.text);
 
+    // If still not closed, warn (backend should close)
+    updateMeta({ html: generatedHTML, mode });
+
     const iframe = document.getElementById("preview");
     iframe.srcdoc = generatedHTML;
 
-    // Auto-resize iframe so no template looks cut
+    // Auto-resize iframe so content isn't visually cut
     setTimeout(() => {
       try {
         const d = iframe.contentDocument || iframe.contentWindow.document;
         const h = Math.max(d.body.scrollHeight, d.documentElement.scrollHeight);
-        iframe.style.height = (h + 20) + "px";
+        iframe.style.height = (h + 24) + "px";
       } catch (e) {}
-    }, 180);
+    }, 220);
 
     setStep(4);
     document.getElementById("loader").style.display="none";
