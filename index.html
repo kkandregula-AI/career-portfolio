@@ -7,12 +7,13 @@
 
 <link rel="icon" type="image/png" href="logo.png">
 
-<!-- Uniform font -->
+<!-- Inter font -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
+<!-- html2pdf (Chrome/Desktop reliable) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-<!-- PDF.js (resume extraction only) -->
+<!-- PDF.js (resume text extraction) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.js"></script>
 <script>
   if (window.pdfjsLib?.GlobalWorkerOptions) {
@@ -39,13 +40,16 @@
   }
   button, input, textarea, select { font-family:'Inter', sans-serif; }
 
-  .container{ max-width:1100px; margin:auto; padding:40px 20px; }
-  .hero{ text-align:center; margin-bottom:22px; }
+  .container{ max-width:1100px; margin:auto; padding:28px 14px; }
+  .hero{ text-align:center; margin-bottom:18px; }
   .hero img{ max-width:320px; width:100%; margin-bottom:10px; }
   .hero p{ font-size:16px; color:var(--muted); margin:0; font-weight:700; letter-spacing:0.01em; }
 
   .grid{ display:grid; grid-template-columns: 420px 1fr; gap:18px; align-items:start; }
-  @media (max-width: 980px){ .grid{ grid-template-columns:1fr; } }
+  @media (max-width: 980px){
+    .grid{ grid-template-columns:1fr; }
+    #previewCard{ order: 2; }
+  }
 
   .card{
     background:var(--card);
@@ -53,6 +57,10 @@
     border-radius:var(--r);
     box-shadow:var(--shadow);
     border:1px solid rgba(0,0,0,0.03);
+  }
+  @media (max-width: 520px){
+    .card{ padding:16px; border-radius:16px; }
+    .hero img{ max-width:260px; }
   }
 
   .label{ font-size:12px; color:var(--muted); margin:0 0 8px; font-weight:900; letter-spacing:0.02em; }
@@ -65,6 +73,9 @@
     font:inherit;
     background:#fff;
   }
+  @media (max-width: 520px){
+    input, textarea{ padding:11px; }
+  }
   textarea{ min-height:110px; resize:vertical; }
 
   .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
@@ -76,6 +87,9 @@
     cursor:pointer;
     background:linear-gradient(90deg,var(--accent1),var(--accent2));
     color:white;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
   }
   .btn.secondary{
     background:#f1f5f9;
@@ -84,6 +98,9 @@
     font-weight:900;
   }
   .btn:disabled{ opacity:.55; cursor:not-allowed; }
+  @media (max-width: 520px){
+    .btn{ width:100%; }
+  }
 
   .templates{
     display:grid;
@@ -127,13 +144,10 @@
 
   .tpl-mini.minimal .bar{ background:#111827; }
   .tpl-mini.minimal .blob{ background:#7C3AED; }
-
   .tpl-mini.corporate .bar{ background:#0B2D45; }
   .tpl-mini.corporate .blob{ background:#2563EB; }
-
   .tpl-mini.academic .bar{ background:#0F3D2E; }
   .tpl-mini.academic .blob{ background:#0F766E; }
-
   .tpl-mini.custom .bar{ background:#0f172a; }
   .tpl-mini.custom .blob{ background:#f59e0b; }
 
@@ -153,9 +167,13 @@
   .step.active .dot{ background: linear-gradient(90deg,var(--accent1),var(--accent2)); }
   .step.done{ color:var(--ink); }
   .step.done .dot{ background: #22c55e; }
+  @media (max-width:520px){
+    .step{ font-size:11px; padding:7px 9px; }
+    .stepper{ gap:8px; }
+  }
 
   #previewCard{ padding:0; overflow:hidden; }
-  iframe{ width:100%; height:820px; border:none; background:white; }
+  iframe{ width:100%; height:78vh; min-height:520px; border:none; background:white; }
 
   .hint{ font-size:12px; color:var(--muted); margin-top:-6px; margin-bottom:12px; line-height:1.45; font-weight:600; }
   .loader{ display:none; margin-top:12px; color:var(--muted); font-weight:950; }
@@ -291,6 +309,10 @@
         <button class="btn secondary" id="pdfBtn" onclick="downloadPDF()" disabled>Download PDF</button>
       </div>
 
+      <div class="hint" style="margin-top:10px;">
+        iPhone Safari: PDF uses <b>Print → Save as PDF</b> for best quality.
+      </div>
+
       <div class="loader" id="loader">Working…</div>
       <div class="inline-alert" id="alert"></div>
 
@@ -385,7 +407,7 @@ function showInPreview(html){
       const h = Math.max(d.body.scrollHeight, d.documentElement.scrollHeight);
       iframe.style.height = (h + 24) + "px";
     } catch (e) {}
-  }, 220);
+  }, 250);
 }
 
 function setDebugText(text){
@@ -715,6 +737,7 @@ function renderBullets(bullets){
 }
 
 function renderPortfolioHTML(data, templateName){
+  // Custom image template is not applied to output (safe, as requested)
   if (templateName === "Custom Upload") templateName = "Modern Minimal";
   const t = templateTokens(templateName);
 
@@ -798,7 +821,10 @@ function renderPortfolioHTML(data, templateName){
   *{ box-sizing:border-box; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
   html,body{ margin:0; padding:0; background:var(--bg); color:var(--ink); font-family:'Inter', sans-serif; }
 
-  .topbar{ background:var(--topbar); padding:22px 18px; }
+  /* Print: A4 portrait */
+  @page { size: A4 portrait; margin: 10mm; }
+
+  .topbar{ background:var(--topbar); padding:22px 18px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .name{
     color:white; font-size:32px; font-weight:900; text-align:center;
     letter-spacing:-0.02em; line-height:1.1;
@@ -853,10 +879,9 @@ function renderPortfolioHTML(data, templateName){
   .bullets li{ margin:6px 0; line-height:1.5; font-size:13.5px; }
 
   .keep-together{ break-inside:avoid; page-break-inside:avoid; }
-
   @media print {
-    .topbar{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .keep-together{ break-inside:avoid; page-break-inside:avoid; }
+    h2{ break-after: avoid; page-break-after: avoid; }
   }
 </style>
 </head>
@@ -890,69 +915,102 @@ function downloadHTML(){
   a.click();
 }
 
-/* ==== PDF export with consistent Inter font (no mixed fonts) ==== */
+/**
+ * PDF download:
+ * - Chrome/desktop: html2pdf -> real file download, A4 portrait
+ * - iPhone Safari: open new tab + Print -> Save as PDF (reliable on iOS)
+ */
 async function downloadPDF(){
   if(!generatedHTML){ showAlert("Generate a profile first."); return; }
 
-  // Render the exact HTML into a hidden iframe so fonts apply consistently
-  const iframe = document.createElement("iframe");
-  iframe.style.position = "fixed";
-  iframe.style.left = "-99999px";
-  iframe.style.top = "0";
-  iframe.style.width = "820px";
-  iframe.style.height = "1200px";
-  iframe.style.border = "0";
-  document.body.appendChild(iframe);
+  const ua = navigator.userAgent || "";
+  const isIOS = /iPhone|iPad|iPod/i.test(ua);
+  const isSafari = /Safari/i.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS/i.test(ua);
 
-  const idoc = iframe.contentDocument || iframe.contentWindow.document;
-  idoc.open();
-  idoc.write(generatedHTML);
-  idoc.close();
-
-  // Wait for iframe & fonts
-  await new Promise(r => setTimeout(r, 700));
-  try { if (idoc.fonts && idoc.fonts.ready) await idoc.fonts.ready; } catch(e) {}
-  await new Promise(r => setTimeout(r, 300));
-
-  // Force Inter everywhere during capture (prevents fallback font mixing)
-  const style = idoc.createElement("style");
-  style.textContent = `
-    #pdf-capture, #pdf-capture * {
-      font-family: 'Inter', sans-serif !important;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
+  // iPhone Safari path: Print -> Save as PDF
+  if (isIOS && isSafari) {
+    const w = window.open("", "_blank");
+    if (!w) {
+      showAlert("Popup blocked. Allow popups to export PDF on iPhone Safari.");
+      return;
     }
-    @page { margin: 10mm; }
-    .keep-together { break-inside: avoid !important; page-break-inside: avoid !important; }
-    h2 { break-after: avoid !important; page-break-after: avoid !important; }
-    .topbar { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  `;
-  idoc.head.appendChild(style);
+    w.document.open();
+    w.document.write(generatedHTML);
+    w.document.close();
 
-  // Wrap body in capture root
-  const wrap = idoc.createElement("div");
-  wrap.id = "pdf-capture";
-  while (idoc.body.firstChild) wrap.appendChild(idoc.body.firstChild);
-  idoc.body.appendChild(wrap);
+    // Wait for fonts in the new tab
+    try { if (w.document.fonts && w.document.fonts.ready) await w.document.fonts.ready; } catch(e){}
+    await new Promise(r => setTimeout(r, 250));
 
-  await html2pdf().set({
-    filename:"portfolio.pdf",
-    margin: 0,
-    image:{type:"jpeg",quality:0.98},
-    html2canvas:{
-      scale:2,
-      useCORS:true,
-      allowTaint:true,
-      scrollY:0,
-      windowWidth:794,
-      backgroundColor:"#ffffff"
-    },
-    jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
-    pagebreak:{mode:["css","legacy"]}
-  }).from(wrap).save();
+    // Print dialog: user saves PDF to Files
+    w.focus();
+    w.print();
+    return;
+  }
 
-  iframe.remove();
+  // Chrome/desktop path: html2pdf with hidden iframe + forced Inter
+  try{
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.left = "-99999px";
+    iframe.style.top = "0";
+    iframe.style.width = "820px";
+    iframe.style.height = "1200px";
+    iframe.style.border = "0";
+    document.body.appendChild(iframe);
+
+    const idoc = iframe.contentDocument || iframe.contentWindow.document;
+    idoc.open();
+    idoc.write(generatedHTML);
+    idoc.close();
+
+    await new Promise(r => setTimeout(r, 700));
+    try { if (idoc.fonts && idoc.fonts.ready) await idoc.fonts.ready; } catch(e) {}
+    await new Promise(r => setTimeout(r, 250));
+
+    // Force Inter + A4 portrait for capture
+    const style = idoc.createElement("style");
+    style.textContent = `
+      @page { size: A4 portrait; margin: 10mm; }
+      #pdf-capture, #pdf-capture * {
+        font-family: 'Inter', sans-serif !important;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      .keep-together { break-inside: avoid !important; page-break-inside: avoid !important; }
+      h2 { break-after: avoid !important; page-break-after: avoid !important; }
+      .topbar { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    `;
+    idoc.head.appendChild(style);
+
+    const wrap = idoc.createElement("div");
+    wrap.id = "pdf-capture";
+    while (idoc.body.firstChild) wrap.appendChild(idoc.body.firstChild);
+    idoc.body.appendChild(wrap);
+
+    await html2pdf().set({
+      filename:"portfolio.pdf",
+      margin: 0,
+      image:{type:"jpeg",quality:0.98},
+      html2canvas:{
+        scale:2,
+        useCORS:true,
+        allowTaint:true,
+        scrollY:0,
+        backgroundColor:"#ffffff",
+        windowWidth:794
+      },
+      jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
+      pagebreak:{mode:["css","legacy"]}
+    }).from(wrap).save();
+
+    iframe.remove();
+  } catch (e) {
+    console.error(e);
+    showAlert("PDF export failed in this browser. Try Download HTML, or use iPhone Safari Print → Save as PDF.");
+  }
 }
 </script>
+
 </body>
 </html>
