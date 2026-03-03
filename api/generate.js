@@ -32,7 +32,7 @@ async function callOpenAI({ key, messages, maxTokens }) {
     body: JSON.stringify({
       model: "gpt-3.5-turbo",
       messages,
-      temperature: 0.1,
+      temperature: 0.15,
       max_tokens: maxTokens
     })
   });
@@ -44,6 +44,14 @@ async function callOpenAI({ key, messages, maxTokens }) {
 
 function safeJsonParse(s) {
   try { return JSON.parse(s); } catch { return null; }
+}
+
+function clampText(text, maxLen) {
+  if (text.length <= maxLen) return text;
+  // Keep head + tail (experience often appears mid/late; tail is important)
+  const head = text.slice(0, Math.floor(maxLen * 0.55));
+  const tail = text.slice(-Math.floor(maxLen * 0.45));
+  return head + "\n\n---\n\n" + tail;
 }
 
 export default async function handler(req, res) {
@@ -65,34 +73,38 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Only PDF or TXT is supported." });
     }
 
+    // 1) Get resume text
     let text = (resumeText || "").trim();
     if (!text) {
       if (!fileBase64) return res.status(400).json({ error: "Missing resume input." });
       text = await extractTextFromFileBase64(fileBase64, mimeType || "");
     }
 
-    if (text.replace(/\s/g, "").length < 120) {
+    // Basic sanity
+    if (text.replace(/\s/g, "").length < 150) {
       return res.status(400).json({
         error: "Not enough readable text extracted. Try Print→Save as PDF (text-based) or upload TXT."
       });
     }
 
-    const HARD_LIMIT = 30_000;
-    if (text.length > HARD_LIMIT) {
-      const head = text.slice(0, 19_000);
-      const tail = text.slice(-11_000);
-      text = head + "\n\n---\n\n" + tail;
-    }
+    // 2) Clamp text to avoid huge prompts (still keep experience + tail)
+    const HARD_LIMIT = 45_000;
+    text = clampText(text, HARD_LIMIT);
 
+    // 3) System prompt focused on NOT losing content
     const systemPrompt = `
 You extract a resume into STRICT JSON for a portfolio generator.
 
-Rules:
+ABSOLUTE RULES:
 - Output ONLY valid JSON. No markdown. No commentary.
-- Include ALL Professional Experience roles found.
-- Include ALL Projects found.
-- If many bullets, keep all roles/projects but max 3 bullets each.
+- Do NOT drop any experience roles or project entries that appear in the resume text.
+- Preserve ALL roles, ALL companies, ALL date ranges, and ALL bullet points.
+- You may rewrite bullets for clarity/impact, but do NOT reduce bullet count or remove entries.
 - Use empty arrays if a section is missing.
+
+If the resume is long:
+- Keep every role and project.
+- If a bullet is extremely long, shorten wording while preserving meaning.
 
 JSON schema:
 {
@@ -128,35 +140,59 @@ ${text}
       { role: "user", content: userPrompt }
     ];
 
+    // 4) Try to get full JSON, then "continue" if cut off
     let out = "";
     let parsed = null;
-    let passes = 0;
-    const maxPasses = 4;
 
-    // pass 1
-    let r = await callOpenAI({ key, messages: baseMessages, maxTokens: 2600 });
+    // Pass 1
+    let r = await callOpenAI({ key, messages: baseMessages, maxTokens: 3000 });
     out += (r?.choices?.[0]?.message?.content || "");
     parsed = safeJsonParse(out);
-    passes++;
 
-    // continue until JSON parses (or max passes)
+    // Continue passes if model cut off mid-JSON
+    let passes = 1;
+    const maxPasses = 6;
+
     while (!parsed && passes < maxPasses) {
       const contMsgs = [
         ...baseMessages,
         { role: "assistant", content: out },
-        { role: "user", content: "Continue the JSON EXACTLY where you stopped. Output ONLY JSON (no repeats, no markdown)." }
+        { role: "user", content: "Continue the JSON EXACTLY where you stopped. Output ONLY JSON. Do not repeat earlier JSON." }
       ];
-      r = await callOpenAI({ key, messages: contMsgs, maxTokens: 1800 });
+      r = await callOpenAI({ key, messages: contMsgs, maxTokens: 2200 });
       out += (r?.choices?.[0]?.message?.content || "");
       parsed = safeJsonParse(out);
       passes++;
     }
 
+    // 5) If still not parseable, attempt JSON repair once
+    if (!parsed) {
+      const repairMsgs = [
+        {
+          role: "system",
+          content: "Convert the following into VALID JSON only matching the schema. Do not remove sections. No markdown."
+        },
+        { role: "user", content: out }
+      ];
+      const rr = await callOpenAI({ key, messages: repairMsgs, maxTokens: 2600 });
+      const repaired = rr?.choices?.[0]?.message?.content || "";
+      parsed = safeJsonParse(repaired);
+
+      // If repair succeeded, set out to repaired (optional)
+      if (parsed) out = repaired;
+    }
+
     if (!parsed) {
       return res.status(500).json({
-        error: "Model output could not be parsed as JSON. Try again (or use a shorter resume)."
+        error:
+          "Model output could not be parsed as JSON (likely truncated). Try again, or upload a TXT resume, or shorten the resume slightly."
       });
     }
+
+    // 6) Final sanity: ensure experience/projects arrays exist
+    if (!Array.isArray(parsed.experience)) parsed.experience = [];
+    if (!Array.isArray(parsed.projects)) parsed.projects = [];
+    if (!Array.isArray(parsed.skills)) parsed.skills = [];
 
     return res.status(200).json({ data: parsed });
   } catch (err) {

@@ -575,7 +575,7 @@ async function generate(){
     mode = "txt";
   }
 
-  if(payload.resumeText && payload.resumeText.replace(/\s/g,"").length < 150 && isPdf){
+  if(payload.resumeText && payload.resumeText.replace(/\s/g,"").length < 900 && isPdf){
     document.getElementById("loader").textContent="Low text extracted. Uploading PDF to server for parsing…";
     payload.fileBase64 = await toBase64(file);
     delete payload.resumeText;
