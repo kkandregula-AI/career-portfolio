@@ -7,945 +7,249 @@
 
 <link rel="icon" type="image/png" href="logo.png">
 
-<!-- Uniform font -->
+<!-- Inter Font -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
-<!-- PDF.js (resume extraction only) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.js"></script>
+
 <script>
-  if (window.pdfjsLib?.GlobalWorkerOptions) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.worker.min.js";
-  }
+if (window.pdfjsLib?.GlobalWorkerOptions) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.worker.min.js";
+}
 </script>
 
 <style>
-  :root{
-    --bg1:#f8fafc; --bg2:#eef2ff;
-    --card:#ffffff; --ink:#0f172a; --muted:#64748b;
-    --line:#e5e7eb;
-    --accent1:#2563EB; --accent2:#7C3AED;
-    --shadow:0 15px 40px rgba(0,0,0,0.08);
-    --r:18px;
-  }
-  *{ box-sizing:border-box; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
-  body{
-    font-family:'Inter', sans-serif;
-    margin:0;
-    background:linear-gradient(135deg,var(--bg1),var(--bg2));
-    color:var(--ink);
-  }
-  button, input, textarea, select{ font-family:'Inter', sans-serif; }
+:root{
+  --bg1:#f8fafc; --bg2:#eef2ff;
+  --card:#ffffff; --ink:#0f172a; --muted:#64748b;
+  --line:#e5e7eb;
+  --accent1:#2563EB; --accent2:#7C3AED;
+  --shadow:0 15px 40px rgba(0,0,0,0.08);
+  --r:18px;
+}
 
-  .container{ max-width:1100px; margin:auto; padding:40px 20px; }
-  .hero{ text-align:center; margin-bottom:22px; }
-  .hero img{ max-width:320px; width:100%; margin-bottom:10px; }
-  .hero p{ font-size:16px; color:var(--muted); margin:0; font-weight:700; letter-spacing:0.01em; }
+*{ box-sizing:border-box; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
 
-  .grid{ display:grid; grid-template-columns: 420px 1fr; gap:18px; align-items:start; }
-  @media (max-width: 980px){ .grid{ grid-template-columns:1fr; } }
+body{
+  font-family:'Inter', sans-serif;
+  margin:0;
+  background:linear-gradient(135deg,var(--bg1),var(--bg2));
+  color:var(--ink);
+}
 
-  .card{
-    background:var(--card);
-    padding:22px;
-    border-radius:var(--r);
-    box-shadow:var(--shadow);
-    border:1px solid rgba(0,0,0,0.03);
-  }
+button,input,textarea{ font-family:'Inter', sans-serif; }
 
-  .label{ font-size:12px; color:var(--muted); margin:0 0 8px; font-weight:900; letter-spacing:0.02em; }
-  input, textarea{
-    width:100%;
-    padding:12px;
-    border-radius:12px;
-    border:1px solid var(--line);
-    margin-bottom:12px;
-    font:inherit;
-    background:#fff;
-  }
-  textarea{ min-height:110px; resize:vertical; }
+.container{ max-width:1100px; margin:auto; padding:40px 20px; }
 
-  .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-  .btn{
-    padding:12px 16px;
-    border:none;
-    border-radius:12px;
-    font-weight:900;
-    cursor:pointer;
-    background:linear-gradient(90deg,var(--accent1),var(--accent2));
-    color:white;
-  }
-  .btn.secondary{
-    background:#f1f5f9;
-    color:var(--ink);
-    border:1px solid var(--line);
-    font-weight:900;
-  }
-  .btn:disabled{ opacity:.55; cursor:not-allowed; }
+.hero{ text-align:center; margin-bottom:22px; }
+.hero img{ max-width:320px; width:100%; margin-bottom:10px; }
+.hero p{ font-size:16px; font-weight:700; color:var(--muted); }
 
-  .templates{
-    display:grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap:10px;
-    margin:6px 0 14px;
-  }
-  @media (max-width: 520px){ .templates{ grid-template-columns:1fr; } }
+.grid{ display:grid; grid-template-columns:420px 1fr; gap:18px; }
+@media(max-width:980px){ .grid{ grid-template-columns:1fr; } }
 
-  .tpl{
-    border:1px solid var(--line);
-    border-radius:14px;
-    padding:12px;
-    background:#fff;
-    cursor:pointer;
-    transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
-  }
-  .tpl:hover{ transform: translateY(-1px); box-shadow: 0 12px 30px rgba(15,23,42,0.08); }
-  .tpl.active{
-    border-color: rgba(37,99,235,0.6);
-    box-shadow: 0 12px 30px rgba(37,99,235,0.12);
-  }
-  .tpl-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
-  .tpl-title{ font-weight:950; font-size:13px; letter-spacing:0.01em; }
-  .chip{ font-size:11px; color:var(--muted); border:1px solid var(--line); padding:3px 8px; border-radius:999px; background:#fff; font-weight:900; }
+.card{
+  background:var(--card);
+  padding:22px;
+  border-radius:var(--r);
+  box-shadow:var(--shadow);
+  border:1px solid rgba(0,0,0,0.03);
+}
 
-  .tpl-mini{
-    height:64px;
-    border-radius:10px;
-    border:1px solid rgba(0,0,0,0.06);
-    background:#fff;
-    position:relative;
-    overflow:hidden;
-  }
-  .tpl-mini .bar{ position:absolute; left:0; top:0; right:0; height:16px; opacity:0.95; }
-  .tpl-mini .line1{ position:absolute; left:10px; top:22px; height:7px; width:42%; border-radius:999px; opacity:0.22; background:#0f172a; }
-  .tpl-mini .line2{ position:absolute; left:10px; top:34px; height:6px; width:68%; border-radius:999px; opacity:0.14; background:#0f172a; }
-  .tpl-mini .chips{ position:absolute; left:10px; bottom:10px; display:flex; gap:6px; }
-  .tpl-mini .chipdot{ width:18px; height:7px; border-radius:999px; opacity:0.25; background:#0f172a; }
-  .tpl-mini .blob{ position:absolute; right:-18px; bottom:-18px; width:70px; height:70px; border-radius:18px; opacity:0.22; }
+.label{ font-size:12px; font-weight:900; color:var(--muted); margin-bottom:8px; }
 
-  .tpl-mini.minimal .bar{ background:#111827; }
-  .tpl-mini.minimal .blob{ background:#7C3AED; }
+input,textarea{
+  width:100%;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid var(--line);
+  margin-bottom:12px;
+}
 
-  .tpl-mini.corporate .bar{ background:#0B2D45; }
-  .tpl-mini.corporate .blob{ background:#2563EB; }
+textarea{ min-height:110px; }
 
-  .tpl-mini.academic .bar{ background:#0F3D2E; }
-  .tpl-mini.academic .blob{ background:#0F766E; }
+.btn{
+  padding:12px 16px;
+  border:none;
+  border-radius:12px;
+  font-weight:900;
+  cursor:pointer;
+  background:linear-gradient(90deg,var(--accent1),var(--accent2));
+  color:white;
+}
+.btn.secondary{
+  background:#f1f5f9;
+  color:var(--ink);
+  border:1px solid var(--line);
+}
 
-  .tpl-mini.custom .bar{ background:#0f172a; }
-  .tpl-mini.custom .blob{ background:#f59e0b; }
+iframe{ width:100%; height:820px; border:none; background:white; }
 
-  .stepper{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:0 0 14px; }
-  .step{
-    display:flex; align-items:center; gap:8px;
-    padding:8px 10px;
-    border-radius:999px;
-    border:1px solid var(--line);
-    background:#fff;
-    color:var(--muted);
-    font-size:12px;
-    font-weight:900;
-  }
-  .dot{ width:10px; height:10px; border-radius:999px; background: rgba(100,116,139,0.35); }
-  .step.active{ color:var(--ink); border-color: rgba(37,99,235,0.35); }
-  .step.active .dot{ background: linear-gradient(90deg,var(--accent1),var(--accent2)); }
-  .step.done{ color:var(--ink); }
-  .step.done .dot{ background: #22c55e; }
+.inline-alert{
+  display:none;
+  margin-top:10px;
+  padding:10px;
+  border-radius:12px;
+  border:1px solid rgba(239,68,68,0.25);
+  background:rgba(239,68,68,0.07);
+  color:#991b1b;
+  font-weight:900;
+}
 
-  #previewCard{ padding:0; overflow:hidden; }
-  iframe{ width:100%; height:820px; border:none; background:white; }
-
-  .hint{ font-size:12px; color:var(--muted); margin-top:-6px; margin-bottom:12px; line-height:1.45; font-weight:600; }
-  .loader{ display:none; margin-top:12px; color:var(--muted); font-weight:950; }
-  .inline-alert{
-    display:none;
-    margin-top:10px;
-    padding:10px 12px;
-    border-radius:12px;
-    border:1px solid rgba(239,68,68,0.25);
-    background: rgba(239,68,68,0.07);
-    color:#991b1b;
-    font-size:13px;
-    font-weight:900;
-    white-space:pre-wrap;
-  }
-  .small{ font-size:12px;color:var(--muted); margin-top:10px; font-weight:600; }
-
-  details{ margin-top:10px; }
-  pre{
-    background:#0b1220;
-    color:#e2e8f0;
-    padding:12px;
-    border-radius:12px;
-    overflow:auto;
-    max-height:260px;
-    font-size:12px;
-  }
-
-  .meta{
-    display:none;
-    margin-top:10px;
-    font-size:12px;
-    color:var(--muted);
-    gap:10px;
-    flex-wrap:wrap;
-  }
-  .pill{
-    border:1px solid var(--line);
-    background:#fff;
-    padding:5px 10px;
-    border-radius:999px;
-    font-weight:900;
-  }
 </style>
 </head>
 
 <body>
 <div class="container">
 
-  <div class="hero">
-    <img src="logo.png" alt="ElevateCV Logo">
-    <p>Transform Your Resume Into A Stunning Portfolio</p>
-  </div>
+<div class="hero">
+  <img src="logo.png">
+  <p>Transform Your Resume Into A Stunning Portfolio</p>
+</div>
 
-  <div class="grid">
+<div class="grid">
 
-    <!-- Controls -->
-    <div class="card">
+<div class="card">
+  <p class="label">Resume (PDF or TXT)</p>
+  <input type="file" id="file" accept=".pdf,.txt">
 
-      <div class="stepper">
-        <div class="step active" data-step="1"><span class="dot"></span> Upload</div>
-        <div class="step" data-step="2"><span class="dot"></span> Parse</div>
-        <div class="step" data-step="3"><span class="dot"></span> Generate</div>
-        <div class="step" data-step="4"><span class="dot"></span> Ready</div>
-      </div>
+  <p class="label">Target Role (optional)</p>
+  <input type="text" id="role">
 
-      <p class="label">Resume (PDF or TXT)</p>
-      <input type="file" id="file" accept=".pdf,.txt,application/pdf,text/plain">
-      <div class="hint">DOCX disabled for stability. PDF/TXT only.</div>
+  <p class="label">Notes (optional)</p>
+  <textarea id="notes"></textarea>
 
-      <p class="label">Choose a template</p>
-      <div class="templates">
-        <div class="tpl active" data-template="Modern Minimal" onclick="selectTemplate(this)">
-          <div class="tpl-top"><div class="tpl-title">Modern Minimal</div><div class="chip">Clean</div></div>
-          <div class="tpl-mini minimal">
-            <div class="bar"></div><div class="line1"></div><div class="line2"></div>
-            <div class="chips"><div class="chipdot"></div><div class="chipdot"></div><div class="chipdot"></div></div>
-            <div class="blob"></div>
-          </div>
-        </div>
+  <button class="btn" onclick="generate()">Generate</button>
+  <button class="btn secondary" onclick="downloadHTML()">Download HTML</button>
+  <button class="btn secondary" onclick="downloadPDF()">Download PDF</button>
 
-        <div class="tpl" data-template="Executive Blue" onclick="selectTemplate(this)">
-          <div class="tpl-top"><div class="tpl-title">Executive Blue</div><div class="chip">Corporate</div></div>
-          <div class="tpl-mini corporate">
-            <div class="bar"></div><div class="line1"></div><div class="line2"></div>
-            <div class="chips"><div class="chipdot"></div><div class="chipdot"></div><div class="chipdot"></div><div class="chipdot"></div></div>
-            <div class="blob"></div>
-          </div>
-        </div>
+  <div class="inline-alert" id="alert"></div>
+</div>
 
-        <div class="tpl" data-template="Academic Green" onclick="selectTemplate(this)">
-          <div class="tpl-top"><div class="tpl-title">Academic Green</div><div class="chip">Scholarly</div></div>
-          <div class="tpl-mini academic">
-            <div class="bar"></div><div class="line1"></div><div class="line2"></div>
-            <div class="chips"><div class="chipdot"></div><div class="chipdot"></div></div>
-            <div class="blob"></div>
-          </div>
-        </div>
+<div class="card">
+  <iframe id="preview"></iframe>
+</div>
 
-        <div class="tpl" data-template="Custom Upload" onclick="selectTemplate(this)">
-          <div class="tpl-top"><div class="tpl-title">Custom Upload</div><div class="chip">Image only</div></div>
-          <div class="tpl-mini custom">
-            <div class="bar"></div><div class="line1"></div><div class="line2"></div>
-            <div class="chips"><div class="chipdot"></div><div class="chipdot"></div><div class="chipdot"></div></div>
-            <div class="blob"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Custom template upload -->
-      <p class="label" id="customLabel" style="display:none;">Upload custom template image (any image format)</p>
-      <input type="file" id="customTemplateFile"
-        accept="image/*,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tif,.tiff,.svg"
-        style="display:none;">
-      <div class="hint" id="customHint" style="display:none;">
-        <b>Note:</b> The image is used only as a <b>style reference</b> (colors/spacing inspiration).<br>
-        The generated portfolio will <b>NOT</b> match the exact template look and feel.<br>
-        The uploaded image will <b>NOT</b> appear inside the generated profile or in PDF/HTML downloads.
-      </div>
-
-      <p class="label">Target Role (optional)</p>
-      <input type="text" id="role" placeholder="e.g., Product Manager / Data Scientist">
-
-      <p class="label">Notes (optional)</p>
-      <textarea id="notes" placeholder="Highlight leadership, AI projects, measurable impact, links, etc."></textarea>
-
-      <div class="row">
-        <button class="btn" id="genBtn" onclick="generate()">Generate</button>
-        <button class="btn secondary" onclick="useDemo()">Try Demo Resume</button>
-      </div>
-
-      <div class="row" style="margin-top:10px;">
-        <button class="btn secondary" id="htmlBtn" onclick="downloadHTML()" disabled>Download HTML</button>
-        <button class="btn secondary" id="pdfBtn" onclick="downloadPDF()" disabled>Download PDF</button>
-      </div>
-
-      <div class="loader" id="loader">Working…</div>
-      <div class="inline-alert" id="alert"></div>
-
-      <div class="meta" id="meta">
-        <span class="pill" id="metaMode">Mode: -</span>
-        <span class="pill" id="metaJson">JSON: -</span>
-        <span class="pill" id="metaChars">HTML: 0 chars</span>
-      </div>
-
-      <details id="debugBox" style="display:none;">
-        <summary class="small">Show extracted text (debug)</summary>
-        <pre id="debugText"></pre>
-      </details>
-
-      <div class="small">Tip: For highly designed resumes, use “Print → Save as PDF” and upload again.</div>
-    </div>
-
-    <!-- Preview -->
-    <div class="card" id="previewCard">
-      <iframe id="preview" title="Portfolio Preview"></iframe>
-    </div>
-
-  </div>
+</div>
 </div>
 
 <script>
-let selectedTemplate = "Modern Minimal";
-let portfolioData = null;
-let generatedHTML = "";
-
-/* Image template is accepted but never shown in outputs */
-let customTemplateImageDataUrl = "";
-let customTemplateMode = "";
-
-const DEMO_RESUME_TEXT = `
-KRISHNA MURTHY K.
-Mumbai, India | +91-90000-00000 | krishna@email.com | linkedin.com/in/krishna
-
-SUMMARY
-AI/ML + Program Management professional with experience building product MVPs, leading delivery, and shipping user-facing apps.
-
-SKILLS
-Product Strategy, PRD, Go-To-Market, Python, FastAPI, AI Integrations, Prompting, System Design, Program Management, Stakeholder Management
-
-PROFESSIONAL EXPERIENCE
-Program Manager / AI Solutions — Company X (2023–2026)
-- Led cross-functional delivery for AI-enabled workflows.
-- Reduced manual effort by 60% through automation and tooling.
-
-PROJECTS
-ElevateCV — Resume-to-Portfolio Generator
-- Built a Vercel-deployed web app that converts resume text into a recruiter-ready portfolio.
-- Added export to HTML and PDF and template styles.
-
-EDUCATION
-B.Tech — Computer Science
-`.trim();
-
-function setStep(step){
-  const steps = Array.from(document.querySelectorAll(".step"));
-  steps.forEach(s => {
-    const n = Number(s.getAttribute("data-step"));
-    s.classList.remove("active","done");
-    if (n < step) s.classList.add("done");
-    if (n === step) s.classList.add("active");
-  });
-}
+let generatedHTML="";
 
 function showAlert(msg){
-  const a = document.getElementById("alert");
-  a.textContent = msg;
-  a.style.display = "block";
-}
-function hideAlert(){
-  const a = document.getElementById("alert");
-  a.textContent = "";
-  a.style.display = "none";
+  const a=document.getElementById("alert");
+  a.style.display="block";
+  a.textContent=msg;
 }
 
-function updateMetaUI({ mode, jsonOk, html }){
-  const meta = document.getElementById("meta");
-  meta.style.display = "flex";
-  document.getElementById("metaMode").textContent = `Mode: ${mode || "-"}`;
-  document.getElementById("metaJson").textContent = `JSON: ${jsonOk ? "ok" : "failed"}`;
-  document.getElementById("metaChars").textContent = `HTML: ${String(html || "").length} chars`;
-}
-
-function showInPreview(html){
-  const iframe = document.getElementById("preview");
-  iframe.srcdoc = html;
-  setTimeout(() => {
-    try {
-      const d = iframe.contentDocument || iframe.contentWindow.document;
-      const h = Math.max(d.body.scrollHeight, d.documentElement.scrollHeight);
-      iframe.style.height = (h + 24) + "px";
-    } catch (e) {}
-  }, 220);
-}
-
-function setDebugText(text){
-  const box = document.getElementById("debugBox");
-  const pre = document.getElementById("debugText");
-  if (!text) {
-    box.style.display = "none";
-    pre.textContent = "";
-    return;
-  }
-  box.style.display = "block";
-  pre.textContent = String(text).slice(0, 8000);
-}
-
-function selectTemplate(el){
-  document.querySelectorAll(".tpl").forEach(x => x.classList.remove("active"));
-  el.classList.add("active");
-  selectedTemplate = el.getAttribute("data-template") || "Modern Minimal";
-
-  const isCustom = selectedTemplate === "Custom Upload";
-  document.getElementById("customLabel").style.display = isCustom ? "block" : "none";
-  document.getElementById("customTemplateFile").style.display = isCustom ? "block" : "none";
-  document.getElementById("customHint").style.display = isCustom ? "block" : "none";
-
-  if (portfolioData) {
-    generatedHTML = renderPortfolioHTML(portfolioData, selectedTemplate);
-    showInPreview(generatedHTML);
-    updateMetaUI({
-      mode: document.getElementById("metaMode")?.textContent?.replace("Mode: ","") || "-",
-      jsonOk: true,
-      html: generatedHTML
-    });
-  }
-}
-
-/* Custom image upload stored only (not shown) */
-document.getElementById("customTemplateFile").addEventListener("change", async (e) => {
-  hideAlert();
-  const f = e.target.files?.[0];
-  if (!f) return;
-
-  const ok = (f.type || "").toLowerCase().startsWith("image/");
-  if (!ok) {
-    showAlert("Please upload an image template (any image format).");
-    e.target.value = "";
-    return;
-  }
-  try{
-    customTemplateImageDataUrl = await readImageAsDataUrl(f);
-    customTemplateMode = "image";
-    showAlert("Template image uploaded. It will NOT appear in output (used only as a style reference).");
-    setTimeout(hideAlert, 1800);
-  } catch(err){
-    console.error(err);
-    showAlert("Could not read this image template. Try another file.");
-    e.target.value = "";
-  }
-});
-
-function readImageAsDataUrl(file){
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ""));
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-function toBase64(file){
-  return new Promise((resolve,reject)=>{
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result.split(",")[1]);
-    reader.onerror = reject;
-  });
-}
-
-/* Resume PDF extraction (client) */
-async function extractPdfTextClient(file){
-  const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-
-  let full = [];
-  for (let p = 1; p <= pdf.numPages; p++) {
-    const page = await pdf.getPage(p);
-    const content = await page.getTextContent({ includeMarkedContent: false });
-
-    const items = (content.items || [])
-      .map(it => ({
-        str: (it.str || "").trim(),
-        x: it.transform?.[4] || 0,
-        y: it.transform?.[5] || 0
-      }))
-      .filter(it => it.str);
-
-    items.sort((a,b) => (b.y - a.y) || (a.x - b.x));
-
-    const lines = [];
-    const lineThreshold = 3;
-    for (const it of items) {
-      let line = lines.find(l => Math.abs(l.y - it.y) <= lineThreshold);
-      if (!line) { line = { y: it.y, parts: [] }; lines.push(line); }
-      line.parts.push(it);
-    }
-
-    lines.sort((a,b) => b.y - a.y);
-
-    const pageLines = lines.map(l =>
-      l.parts.sort((a,b) => a.x - b.x).map(p => p.str).join(" ")
-    );
-
-    full.push(pageLines.join("\n").trim());
-  }
-
-  return full.join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
-}
-
-/* ---------- Generate ---------- */
-async function useDemo(){
-  hideAlert();
-  setDebugText(DEMO_RESUME_TEXT);
-  document.getElementById("loader").style.display = "block";
-  document.getElementById("loader").textContent = "Using demo resume…";
-  setStep(2);
-
-  await runGenerateRequest({
-    resumeText: DEMO_RESUME_TEXT,
-    mimeType: "text/plain",
-    role: document.getElementById("role").value,
-    notes: document.getElementById("notes").value
-  }, "demo");
+function showPreview(html){
+  document.getElementById("preview").srcdoc=html;
 }
 
 async function generate(){
-  hideAlert();
-  setDebugText("");
-  portfolioData = null;
-  generatedHTML = "";
-  document.getElementById("htmlBtn").disabled = true;
-  document.getElementById("pdfBtn").disabled = true;
+  const file=document.getElementById("file").files[0];
+  if(!file){ showAlert("Upload resume first."); return; }
 
-  const file = document.getElementById("file").files[0];
-  if(!file){
-    showAlert("Please upload a PDF or TXT resume (or click Try Demo Resume).");
-    return;
-  }
-
-  const isPdf = file.type === "application/pdf" || (file.name || "").toLowerCase().endsWith(".pdf");
-  const isTxt = file.type === "text/plain" || (file.name || "").toLowerCase().endsWith(".txt");
-  if(!isPdf && !isTxt){
-    showAlert("Only PDF or TXT is supported for stability.");
-    return;
-  }
-
-  document.getElementById("loader").style.display="block";
-  document.getElementById("loader").textContent="Reading file…";
-  setStep(1);
-
-  const payload = {
-    role: document.getElementById("role").value,
-    notes: document.getElementById("notes").value
-  };
-
-  setStep(2);
-  let mode = "-";
-
-  if(isPdf){
-    document.getElementById("loader").textContent="Extracting text from PDF…";
-    try{
-      payload.resumeText = await extractPdfTextClient(file);
-      payload.mimeType = "application/pdf";
-      setDebugText(payload.resumeText);
-      mode = "pdfjs";
-    } catch(e){
-      console.error("PDF.js extraction error:", e);
-      document.getElementById("loader").textContent="Fallback: uploading PDF to server…";
-      payload.fileBase64 = await toBase64(file);
-      payload.mimeType = "application/pdf";
-      mode = "server-fallback";
-    }
+  let text="";
+  if(file.type==="text/plain"){
+    text=await file.text();
   } else {
-    document.getElementById("loader").textContent="Reading TXT…";
-    payload.resumeText = await file.text();
-    payload.mimeType = "text/plain";
-    setDebugText(payload.resumeText);
-    mode = "txt";
+    const buffer=await file.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:buffer}).promise;
+    const page=await pdf.getPage(1);
+    const content=await page.getTextContent();
+    text=content.items.map(i=>i.str).join(" ");
   }
 
-  // If extraction is weak, fallback to server parsing
-  if(payload.resumeText && payload.resumeText.replace(/\s/g,"").length < 900 && isPdf){
-    document.getElementById("loader").textContent="Low text extracted. Uploading PDF to server for parsing…";
-    payload.fileBase64 = await toBase64(file);
-    delete payload.resumeText;
-    mode = "server-fallback";
-  }
+  const res=await fetch("/api/generate",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({
+      resumeText:text,
+      role:document.getElementById("role").value,
+      notes:document.getElementById("notes").value
+    })
+  });
 
-  if(!payload.resumeText && !payload.fileBase64){
-    document.getElementById("loader").style.display="none";
-    setStep(1);
-    showAlert("We couldn't extract readable text from this file. Try: Print → Save as PDF, or upload TXT.");
-    return;
-  }
+  const data=await res.json();
+  if(!res.ok){ showAlert(data.error||"Error"); return; }
 
-  await runGenerateRequest(payload, mode);
+  generatedHTML=renderPortfolio(data.data);
+  showPreview(generatedHTML);
 }
 
-async function runGenerateRequest(payload, mode){
-  const genBtn = document.getElementById("genBtn");
-  genBtn.disabled = true;
-
-  try{
-    setStep(3);
-    document.getElementById("loader").textContent = "Generating structured profile (JSON)…";
-
-    const response = await fetch("/api/generate",{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify(payload)
-    });
-
-    const data = await response.json().catch(()=> ({}));
-    if(!response.ok) throw new Error(data?.error || "Generation failed. Please try again.");
-    if (!data?.data || typeof data.data !== "object") throw new Error("Server did not return valid JSON profile.");
-
-    portfolioData = normalizeProfileJson(data.data);
-
-    generatedHTML = renderPortfolioHTML(portfolioData, selectedTemplate);
-    showInPreview(generatedHTML);
-    updateMetaUI({ mode, jsonOk: true, html: generatedHTML });
-
-    setStep(4);
-    document.getElementById("loader").style.display="none";
-    document.getElementById("htmlBtn").disabled = false;
-    document.getElementById("pdfBtn").disabled = false;
-
-    if (window.innerWidth < 980) {
-      document.getElementById("preview").scrollIntoView({ behavior:"smooth", block:"start" });
-    }
-  }catch(e){
-    document.getElementById("loader").style.display="none";
-    setStep(1);
-    updateMetaUI({ mode, jsonOk: false, html: "" });
-    showAlert(e.message || String(e));
-  }finally{
-    genBtn.disabled = false;
-  }
-}
-
-/* JSON normalization */
-function normalizeProfileJson(x){
-  const safeArr = (v) => Array.isArray(v) ? v.filter(Boolean) : [];
-  const safeStr = (v) => (typeof v === "string" ? v : "").trim();
-
-  const contact = x.contact && typeof x.contact === "object" ? x.contact : {};
-  return {
-    name: safeStr(x.name) || "Your Name",
-    title: safeStr(x.title),
-    contact: {
-      location: safeStr(contact.location),
-      phone: safeStr(contact.phone),
-      email: safeStr(contact.email),
-      linkedin: safeStr(contact.linkedin),
-      website: safeStr(contact.website)
-    },
-    summary: safeStr(x.summary),
-    skills: safeArr(x.skills).map(safeStr).filter(Boolean),
-    experience: safeArr(x.experience).map(e => ({
-      company: safeStr(e.company),
-      role: safeStr(e.role),
-      location: safeStr(e.location),
-      start: safeStr(e.start),
-      end: safeStr(e.end),
-      bullets: safeArr(e.bullets).map(safeStr).filter(Boolean)
-    })).filter(e => e.company || e.role),
-    projects: safeArr(x.projects).map(p => ({
-      name: safeStr(p.name),
-      link: safeStr(p.link),
-      tech: safeArr(p.tech).map(safeStr).filter(Boolean),
-      bullets: safeArr(p.bullets).map(safeStr).filter(Boolean)
-    })).filter(p => p.name),
-    education: safeArr(x.education).map(ed => ({
-      school: safeStr(ed.school),
-      degree: safeStr(ed.degree),
-      start: safeStr(ed.start),
-      end: safeStr(ed.end),
-      details: safeStr(ed.details)
-    })).filter(ed => ed.school || ed.degree),
-    certifications: safeArr(x.certifications).map(safeStr).filter(Boolean),
-    links: safeArr(x.links).map(l => ({
-      label: safeStr(l.label),
-      url: safeStr(l.url)
-    })).filter(l => l.url || l.label)
-  };
-}
-
-function templateTokens(templateName){
-  if (templateName === "Executive Blue") {
-    return { topBar:"#0B2D45", accent:"#2563EB", sub:"#0EA5E9", bg:"#fff", ink:"#0f172a", muted:"#475569", line:"#e5e7eb" };
-  }
-  if (templateName === "Academic Green") {
-    return { topBar:"#0F3D2E", accent:"#0F766E", sub:"#16A34A", bg:"#fff", ink:"#0f172a", muted:"#475569", line:"#e5e7eb" };
-  }
-  return { topBar:"#111827", accent:"#7C3AED", sub:"#2563EB", bg:"#fff", ink:"#0f172a", muted:"#475569", line:"#e5e7eb" };
-}
-
-function escHtml(s){
-  return String(s || "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
-
-function fmtContact(c){
-  const parts = [];
-  if (c.location) parts.push(escHtml(c.location));
-  if (c.phone) parts.push(escHtml(c.phone));
-  if (c.email) parts.push(escHtml(c.email));
-  if (c.linkedin) parts.push(escHtml(c.linkedin));
-  if (c.website) parts.push(escHtml(c.website));
-  return parts.join("  •  ");
-}
-
-function dateRange(start, end){
-  const a = (start || "").trim();
-  const b = (end || "").trim();
-  if (a && b) return `${escHtml(a)} – ${escHtml(b)}`;
-  if (a) return `${escHtml(a)} – Present`;
-  if (b) return escHtml(b);
-  return "";
-}
-
-function renderBullets(bullets){
-  if (!bullets || !bullets.length) return "";
-  return `<ul class="bullets">${bullets.map(b => `<li>${escHtml(b)}</li>`).join("")}</ul>`;
-}
-
-/* Render final HTML */
-function renderPortfolioHTML(data, templateName){
-  // Custom upload is image-only and NOT applied to output (safe).
-  if (templateName === "Custom Upload") templateName = "Modern Minimal";
-
-  const t = templateTokens(templateName);
-  const contactLine = fmtContact(data.contact || {});
-  const headerTitle = data.title ? `<div class="ptitle">${escHtml(data.title)}</div>` : "";
-
-  const summary = data.summary ? `<div class="section"><h2>Summary</h2><p>${escHtml(data.summary)}</p></div>` : "";
-
-  const skills = (data.skills && data.skills.length)
-    ? `<div class="section"><h2>Skills</h2><div class="skills-grid">${data.skills.map(s => `<div class="skill">${escHtml(s)}</div>`).join("")}</div></div>`
-    : "";
-
-  const experience = (data.experience && data.experience.length)
-    ? `<div class="section"><h2>Professional Experience</h2>
-        ${data.experience.map(e => `
-          <div class="keep-together item">
-            <div class="item-top">
-              <div class="item-left">
-                <div class="item-title">${escHtml(e.role || "")}${e.company ? ` <span class="at">@</span> ${escHtml(e.company)}` : ""}</div>
-                <div class="item-sub">${[e.location].filter(Boolean).map(escHtml).join(" • ")}</div>
-              </div>
-              <div class="item-right">${dateRange(e.start, e.end)}</div>
-            </div>
-            ${renderBullets(e.bullets)}
-          </div>
-        `).join("")}
-      </div>`
-    : "";
-
-  const projects = (data.projects && data.projects.length)
-    ? `<div class="section"><h2>Projects</h2>
-        ${data.projects.map(p => `
-          <div class="keep-together item">
-            <div class="item-top">
-              <div class="item-left">
-                <div class="item-title">${escHtml(p.name)}</div>
-                <div class="item-sub">
-                  ${p.link ? `<span class="link">${escHtml(p.link)}</span>` : ""}
-                  ${p.tech && p.tech.length ? `${p.link ? " • " : ""}${escHtml(p.tech.join(", "))}` : ""}
-                </div>
-              </div>
-            </div>
-            ${renderBullets(p.bullets)}
-          </div>
-        `).join("")}
-      </div>`
-    : "";
-
-  const education = (data.education && data.education.length)
-    ? `<div class="section"><h2>Education</h2>
-        ${data.education.map(ed => `
-          <div class="keep-together item">
-            <div class="item-top">
-              <div class="item-left">
-                <div class="item-title">${escHtml(ed.degree || "")}${ed.school ? ` <span class="at">@</span> ${escHtml(ed.school)}` : ""}</div>
-                <div class="item-sub">${escHtml(ed.details || "")}</div>
-              </div>
-              <div class="item-right">${dateRange(ed.start, ed.end)}</div>
-            </div>
-          </div>
-        `).join("")}
-      </div>`
-    : "";
-
-  const certs = (data.certifications && data.certifications.length)
-    ? `<div class="section"><h2>Certifications</h2><ul class="bullets">${data.certifications.map(c => `<li>${escHtml(c)}</li>`).join("")}</ul></div>`
-    : "";
-
-  const links = (data.links && data.links.length)
-    ? `<div class="section"><h2>Links</h2><ul class="bullets">${data.links.map(l => `<li><strong>${escHtml(l.label || "Link")}:</strong> ${escHtml(l.url)}</li>`).join("")}</ul></div>`
-    : "";
-
-  return `<!DOCTYPE html>
+function renderPortfolio(d){
+return `
+<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escHtml(data.name)} — Portfolio</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-  :root{ --topbar:${t.topBar}; --accent:${t.accent}; --sub:${t.sub}; --bg:${t.bg}; --ink:${t.ink}; --muted:${t.muted}; --line:${t.line}; }
-  *{ box-sizing:border-box; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
-  html,body{ margin:0; padding:0; background:var(--bg); color:var(--ink); font-family:'Inter', sans-serif; }
-
-  .topbar{ background:var(--topbar); padding:22px 18px; }
-  .name{
-    color:white; font-size:32px; font-weight:900; text-align:center;
-    letter-spacing:-0.02em; line-height:1.1;
-  }
-  .ptitle{
-    color:rgba(255,255,255,0.9); text-align:center; margin-top:8px;
-    font-weight:700; font-size:15px; letter-spacing:0.01em;
-  }
-  .contact{
-    color:rgba(255,255,255,0.88); text-align:center; margin-top:10px;
-    font-size:13px; font-weight:600; letter-spacing:0.01em;
-  }
-
-  .wrap{ max-width:900px; margin:0 auto; padding:18px; }
-  .section{ padding:14px 0; border-bottom:1px solid var(--line); }
-  .section:last-child{ border-bottom:none; }
-
-  h2{
-    margin:0 0 10px;
-    font-size:13px;
-    text-transform:uppercase;
-    letter-spacing:0.14em;
-    color:var(--accent);
-    font-weight:900;
-  }
-  p{ margin:0; line-height:1.65; font-size:14px; color:var(--ink); }
-
-  .skills-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));
-    gap:10px;
-    margin-top:10px;
-  }
-  .skill{
-    border:1px solid var(--line);
-    border-radius:12px;
-    padding:8px 10px;
-    font-weight:700;
-    background:#fff;
-    font-size:13px;
-  }
-
-  .item{ padding:10px 0; }
-  .item-top{ display:flex; justify-content:space-between; gap:14px; align-items:flex-start; }
-  .item-title{ font-weight:900; font-size:14px; line-height:1.25; }
-  .item-sub{ margin-top:4px; color:var(--muted); font-weight:600; font-size:12.5px; line-height:1.35; }
-  .item-right{ color:var(--muted); font-weight:700; font-size:12.5px; white-space:nowrap; }
-  .at{ color:var(--muted); font-weight:800; }
-  .link{ color:var(--sub); font-weight:900; }
-
-  .bullets{ margin:8px 0 0 18px; padding:0; }
-  .bullets li{ margin:6px 0; line-height:1.5; font-size:13.5px; }
-
-  .keep-together{ break-inside:avoid; page-break-inside:avoid; }
-
-  @media print {
-    .topbar{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .keep-together{ break-inside:avoid; page-break-inside:avoid; }
-  }
+body{ font-family:'Inter',sans-serif; margin:0; }
+.top{ background:#111827; padding:24px; color:white; text-align:center; }
+.name{ font-size:32px; font-weight:900; }
+.section{ padding:18px; border-bottom:1px solid #e5e7eb; }
+h2{ font-size:13px; text-transform:uppercase; letter-spacing:0.15em; }
+p{ line-height:1.6; font-size:14px; }
 </style>
 </head>
 <body>
-  <div class="topbar">
-    <div class="name">${escHtml(data.name)}</div>
-    ${headerTitle}
-    ${contactLine ? `<div class="contact">${contactLine}</div>` : ``}
-  </div>
-
-  <div class="wrap">
-    ${summary}
-    ${skills}
-    ${experience}
-    ${projects}
-    ${education}
-    ${certs}
-    ${links}
-  </div>
+<div class="top">
+<div class="name">${d.name||""}</div>
+<div>${d.title||""}</div>
+</div>
+<div class="section"><h2>Summary</h2><p>${d.summary||""}</p></div>
 </body>
-</html>`;
+</html>
+`;
 }
 
-/* Downloads */
 function downloadHTML(){
-  if(!generatedHTML){ showAlert("Generate a profile first."); return; }
-  const blob = new Blob([generatedHTML], { type:"text/html" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "portfolio.html";
+  if(!generatedHTML) return;
+  const blob=new Blob([generatedHTML],{type:"text/html"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="portfolio.html";
   a.click();
 }
 
-function downloadPDF(){
-  if(!generatedHTML){ showAlert("Generate a profile first."); return; }
+/* ==== FIXED PDF EXPORT (NO MIXED FONTS) ==== */
+async function downloadPDF(){
+  if(!generatedHTML){ showAlert("Generate first."); return; }
 
-  const doc = new DOMParser().parseFromString(generatedHTML, "text/html");
-  const styleTags = Array.from(doc.querySelectorAll("style")).map(s => s.outerHTML).join("\n");
-  const linkTags = Array.from(doc.querySelectorAll('link[rel="stylesheet"]')).map(l => l.outerHTML).join("\n");
+  const iframe=document.createElement("iframe");
+  iframe.style.position="fixed";
+  iframe.style.left="-9999px";
+  document.body.appendChild(iframe);
 
-  const wrapper = document.createElement("div");
-  wrapper.style.background = "white";
-  wrapper.style.width = "210mm";
-  wrapper.style.boxSizing = "border-box";
-  wrapper.style.margin = "0";
-  wrapper.style.padding = "0";
+  const idoc=iframe.contentDocument;
+  idoc.open();
+  idoc.write(generatedHTML);
+  idoc.close();
 
-  wrapper.innerHTML = `
-    ${linkTags}
-    <style>
-      @page { margin: 10mm; }
-      html, body { margin: 0 !important; padding: 0 !important; }
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; font-family:'Inter', sans-serif; }
-      * { box-sizing: border-box; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
-      #pdf-root, #pdf-root * { overflow: visible !important; }
-      #pdf-root { width: 210mm; padding: 0; margin: 0; }
-      .keep-together { break-inside: avoid !important; page-break-inside: avoid !important; }
-      h2 { break-after: avoid !important; page-break-after: avoid !important; }
-      p { orphans: 3; widows: 3; }
-    </style>
-    ${styleTags}
-    <div id="pdf-root">${doc.body ? doc.body.innerHTML : generatedHTML}</div>
+  await new Promise(r=>setTimeout(r,600));
+  if(idoc.fonts) await idoc.fonts.ready;
+  await new Promise(r=>setTimeout(r,200));
+
+  const style=idoc.createElement("style");
+  style.textContent=`
+    *{ font-family:'Inter',sans-serif !important; }
+    @page{ margin:10mm; }
   `;
+  idoc.head.appendChild(style);
 
-  html2pdf().set({
+  await html2pdf().from(idoc.body).set({
     filename:"portfolio.pdf",
-    margin: 0,
-    image:{type:"jpeg",quality:0.98},
-    html2canvas:{ scale:2, useCORS:true, scrollY:0, windowWidth:794, backgroundColor:"#ffffff" },
-    jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
-    pagebreak:{mode:["css","legacy"]}
-  }).from(wrapper).save();
+    html2canvas:{scale:2},
+    jsPDF:{unit:"mm",format:"a4",orientation:"portrait"}
+  }).save();
+
+  iframe.remove();
 }
 </script>
+
 </body>
 </html>
