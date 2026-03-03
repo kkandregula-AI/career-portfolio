@@ -8,10 +8,9 @@
 <link rel="icon" type="image/png" href="logo.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-<!-- PDF.js for client-side extraction -->
+<!-- PDF.js (resume extraction + custom PDF template preview) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.js"></script>
 <script>
-  // REQUIRED for many deployments (fixes browser extraction failures)
   if (window.pdfjsLib?.GlobalWorkerOptions) {
     pdfjsLib.GlobalWorkerOptions.workerSrc =
       "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.worker.min.js";
@@ -79,19 +78,19 @@
   }
   .btn:disabled{ opacity:.55; cursor:not-allowed; }
 
-  /* Templates */
   .templates{
     display:grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap:10px;
     margin:6px 0 14px;
   }
   @media (max-width: 520px){ .templates{ grid-template-columns:1fr; } }
+
   .tpl{
     border:1px solid var(--line);
     border-radius:14px;
     padding:12px;
-    background: #fff;
+    background:#fff;
     cursor:pointer;
     transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
   }
@@ -104,7 +103,7 @@
   .tpl-title{ font-weight:950; font-size:13px; }
   .chip{ font-size:11px; color:var(--muted); border:1px solid var(--line); padding:3px 8px; border-radius:999px; background:#fff; font-weight:800; }
 
-  /* --- Template thumbnails (distinct per template) --- */
+  /* Distinct thumbnails */
   .tpl-mini{
     height:64px;
     border-radius:10px;
@@ -113,38 +112,13 @@
     position:relative;
     overflow:hidden;
   }
-  .tpl-mini .bar{
-    position:absolute; left:0; top:0; right:0; height:16px;
-    opacity:0.95;
-  }
-  .tpl-mini .line1{
-    position:absolute; left:10px; top:22px; height:7px; width:42%;
-    border-radius:999px;
-    opacity:0.22;
-    background:#0f172a;
-  }
-  .tpl-mini .line2{
-    position:absolute; left:10px; top:34px; height:6px; width:68%;
-    border-radius:999px;
-    opacity:0.14;
-    background:#0f172a;
-  }
-  .tpl-mini .chips{
-    position:absolute; left:10px; bottom:10px;
-    display:flex; gap:6px;
-  }
-  .tpl-mini .chipdot{
-    width:18px; height:7px;
-    border-radius:999px;
-    opacity:0.25;
-    background:#0f172a;
-  }
-  .tpl-mini .blob{
-    position:absolute; right:-18px; bottom:-18px;
-    width:70px; height:70px;
-    border-radius:18px;
-    opacity:0.22;
-  }
+  .tpl-mini .bar{ position:absolute; left:0; top:0; right:0; height:16px; opacity:0.95; }
+  .tpl-mini .line1{ position:absolute; left:10px; top:22px; height:7px; width:42%; border-radius:999px; opacity:0.22; background:#0f172a; }
+  .tpl-mini .line2{ position:absolute; left:10px; top:34px; height:6px; width:68%; border-radius:999px; opacity:0.14; background:#0f172a; }
+  .tpl-mini .chips{ position:absolute; left:10px; bottom:10px; display:flex; gap:6px; }
+  .tpl-mini .chipdot{ width:18px; height:7px; border-radius:999px; opacity:0.25; background:#0f172a; }
+  .tpl-mini .blob{ position:absolute; right:-18px; bottom:-18px; width:70px; height:70px; border-radius:18px; opacity:0.22; }
+
   .tpl-mini.minimal .bar{ background:#111827; }
   .tpl-mini.minimal .blob{ background:#7C3AED; }
 
@@ -154,7 +128,9 @@
   .tpl-mini.academic .bar{ background:#0F3D2E; }
   .tpl-mini.academic .blob{ background:#0F766E; }
 
-  /* Stepper */
+  .tpl-mini.custom .bar{ background:#0f172a; }
+  .tpl-mini.custom .blob{ background:#f59e0b; }
+
   .stepper{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:0 0 14px; }
   .step{
     display:flex; align-items:center; gap:8px;
@@ -172,7 +148,6 @@
   .step.done{ color:var(--ink); }
   .step.done .dot{ background: #22c55e; }
 
-  /* Preview */
   #previewCard{ padding:0; overflow:hidden; }
   iframe{ width:100%; height:820px; border:none; background:white; }
 
@@ -250,12 +225,8 @@
         <div class="tpl active" data-template="Modern Minimal" onclick="selectTemplate(this)">
           <div class="tpl-top"><div class="tpl-title">Modern Minimal</div><div class="chip">Clean</div></div>
           <div class="tpl-mini minimal">
-            <div class="bar"></div>
-            <div class="line1"></div>
-            <div class="line2"></div>
-            <div class="chips">
-              <div class="chipdot"></div><div class="chipdot"></div><div class="chipdot"></div>
-            </div>
+            <div class="bar"></div><div class="line1"></div><div class="line2"></div>
+            <div class="chips"><div class="chipdot"></div><div class="chipdot"></div><div class="chipdot"></div></div>
             <div class="blob"></div>
           </div>
         </div>
@@ -263,12 +234,8 @@
         <div class="tpl" data-template="Executive Blue" onclick="selectTemplate(this)">
           <div class="tpl-top"><div class="tpl-title">Executive Blue</div><div class="chip">Corporate</div></div>
           <div class="tpl-mini corporate">
-            <div class="bar"></div>
-            <div class="line1"></div>
-            <div class="line2"></div>
-            <div class="chips">
-              <div class="chipdot"></div><div class="chipdot"></div><div class="chipdot"></div><div class="chipdot"></div>
-            </div>
+            <div class="bar"></div><div class="line1"></div><div class="line2"></div>
+            <div class="chips"><div class="chipdot"></div><div class="chipdot"></div><div class="chipdot"></div><div class="chipdot"></div></div>
             <div class="blob"></div>
           </div>
         </div>
@@ -276,15 +243,28 @@
         <div class="tpl" data-template="Academic Green" onclick="selectTemplate(this)">
           <div class="tpl-top"><div class="tpl-title">Academic Green</div><div class="chip">Scholarly</div></div>
           <div class="tpl-mini academic">
-            <div class="bar"></div>
-            <div class="line1"></div>
-            <div class="line2"></div>
-            <div class="chips">
-              <div class="chipdot"></div><div class="chipdot"></div>
-            </div>
+            <div class="bar"></div><div class="line1"></div><div class="line2"></div>
+            <div class="chips"><div class="chipdot"></div><div class="chipdot"></div></div>
             <div class="blob"></div>
           </div>
         </div>
+
+        <div class="tpl" data-template="Custom Upload" onclick="selectTemplate(this)">
+          <div class="tpl-top"><div class="tpl-title">Custom Upload</div><div class="chip">HTML/PDF</div></div>
+          <div class="tpl-mini custom">
+            <div class="bar"></div><div class="line1"></div><div class="line2"></div>
+            <div class="chips"><div class="chipdot"></div><div class="chipdot"></div><div class="chipdot"></div></div>
+            <div class="blob"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Custom template upload -->
+      <p class="label" id="customLabel" style="display:none;">Upload custom template (HTML or PDF)</p>
+      <input type="file" id="customTemplateFile" accept=".html,.pdf,text/html,application/pdf" style="display:none;">
+      <div class="hint" id="customHint" style="display:none;">
+        HTML must include <b>{{CONTENT}}</b> placeholder.<br>
+        PDF will be used as a visual theme (first page image), content will be injected below.
       </div>
 
       <p class="label">Target Role (optional)</p>
@@ -330,9 +310,12 @@
 
 <script>
 let selectedTemplate = "Modern Minimal";
-let lastExtractedText = "";
-let portfolioData = null;       // JSON from API
-let generatedHTML = "";         // HTML rendered locally from JSON
+let portfolioData = null;
+let generatedHTML = "";
+
+let customTemplateHTML = "";        // if user uploads HTML template
+let customTemplatePdfDataUrl = "";  // if user uploads PDF template (first page rendered to image)
+let customTemplateMode = "";        // "html" | "pdf" | ""
 
 const DEMO_RESUME_TEXT = `
 KRISHNA MURTHY K.
@@ -358,19 +341,6 @@ EDUCATION
 B.Tech — Computer Science
 `.trim();
 
-function selectTemplate(el){
-  document.querySelectorAll(".tpl").forEach(x => x.classList.remove("active"));
-  el.classList.add("active");
-  selectedTemplate = el.getAttribute("data-template") || "Modern Minimal";
-
-  // If we already have data, re-render instantly
-  if (portfolioData) {
-    generatedHTML = renderPortfolioHTML(portfolioData, selectedTemplate);
-    showInPreview(generatedHTML);
-    updateMetaUI({ mode: document.getElementById("metaMode")?.textContent?.replace("Mode: ","") || "-", jsonOk: true, html: generatedHTML });
-  }
-}
-
 function setStep(step){
   const steps = Array.from(document.querySelectorAll(".step"));
   steps.forEach(s => {
@@ -392,17 +362,114 @@ function hideAlert(){
   a.style.display = "none";
 }
 
+function updateMetaUI({ mode, jsonOk, html }){
+  const meta = document.getElementById("meta");
+  meta.style.display = "flex";
+  document.getElementById("metaMode").textContent = `Mode: ${mode || "-"}`;
+  document.getElementById("metaJson").textContent = `JSON: ${jsonOk ? "ok" : "failed"}`;
+  document.getElementById("metaChars").textContent = `HTML: ${String(html || "").length} chars`;
+}
+
+function showInPreview(html){
+  const iframe = document.getElementById("preview");
+  iframe.srcdoc = html;
+  setTimeout(() => {
+    try {
+      const d = iframe.contentDocument || iframe.contentWindow.document;
+      const h = Math.max(d.body.scrollHeight, d.documentElement.scrollHeight);
+      iframe.style.height = (h + 24) + "px";
+    } catch (e) {}
+  }, 220);
+}
+
 function setDebugText(text){
-  lastExtractedText = text || "";
   const box = document.getElementById("debugBox");
   const pre = document.getElementById("debugText");
-  if (!lastExtractedText) {
+  if (!text) {
     box.style.display = "none";
     pre.textContent = "";
     return;
   }
   box.style.display = "block";
-  pre.textContent = lastExtractedText.slice(0, 8000);
+  pre.textContent = String(text).slice(0, 8000);
+}
+
+function selectTemplate(el){
+  document.querySelectorAll(".tpl").forEach(x => x.classList.remove("active"));
+  el.classList.add("active");
+  selectedTemplate = el.getAttribute("data-template") || "Modern Minimal";
+
+  const isCustom = selectedTemplate === "Custom Upload";
+  document.getElementById("customLabel").style.display = isCustom ? "block" : "none";
+  document.getElementById("customTemplateFile").style.display = isCustom ? "block" : "none";
+  document.getElementById("customHint").style.display = isCustom ? "block" : "none";
+
+  if (portfolioData) {
+    generatedHTML = renderPortfolioHTML(portfolioData, selectedTemplate);
+    showInPreview(generatedHTML);
+    updateMetaUI({ mode: document.getElementById("metaMode")?.textContent?.replace("Mode: ","") || "-", jsonOk: true, html: generatedHTML });
+  }
+}
+
+document.getElementById("customTemplateFile").addEventListener("change", async (e) => {
+  hideAlert();
+  const f = e.target.files?.[0];
+  if (!f) return;
+
+  customTemplateHTML = "";
+  customTemplatePdfDataUrl = "";
+  customTemplateMode = "";
+
+  const isPdf = f.type === "application/pdf" || (f.name || "").toLowerCase().endsWith(".pdf");
+  const isHtml = f.type === "text/html" || (f.name || "").toLowerCase().endsWith(".html");
+
+  if (isHtml) {
+    const txt = await f.text();
+    if (!txt.includes("{{CONTENT}}")) {
+      showAlert("Custom HTML template must include {{CONTENT}} placeholder.");
+      e.target.value = "";
+      return;
+    }
+    customTemplateHTML = txt;
+    customTemplateMode = "html";
+  } else if (isPdf) {
+    try {
+      customTemplatePdfDataUrl = await renderFirstPagePdfToImageDataUrl(f);
+      customTemplateMode = "pdf";
+    } catch (err) {
+      console.error(err);
+      showAlert("Could not read this PDF template. Try a simpler PDF or export again.");
+      e.target.value = "";
+      return;
+    }
+  } else {
+    showAlert("Please upload a .html or .pdf template file.");
+    e.target.value = "";
+    return;
+  }
+
+  if (portfolioData && selectedTemplate === "Custom Upload") {
+    generatedHTML = renderPortfolioHTML(portfolioData, "Custom Upload");
+    showInPreview(generatedHTML);
+    updateMetaUI({ mode: document.getElementById("metaMode")?.textContent?.replace("Mode: ","") || "-", jsonOk: true, html: generatedHTML });
+  }
+});
+
+async function renderFirstPagePdfToImageDataUrl(file){
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const page = await pdf.getPage(1);
+
+  const viewport = page.getViewport({ scale: 2.0 });
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+
+  canvas.width = Math.ceil(viewport.width);
+  canvas.height = Math.ceil(viewport.height);
+
+  await page.render({ canvasContext: ctx, viewport }).promise;
+
+  return canvas.toDataURL("image/png", 0.92);
 }
 
 function toBase64(file){
@@ -414,11 +481,7 @@ function toBase64(file){
   });
 }
 
-/**
- * Improved PDF extraction:
- * - sort by y desc then x asc
- * - group items into lines by similar y (preserves bullets/roles)
- */
+/* Resume PDF extraction (client) */
 async function extractPdfTextClient(file){
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -458,32 +521,9 @@ async function extractPdfTextClient(file){
   return full.join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
-function updateMetaUI({ mode, jsonOk, html }){
-  const meta = document.getElementById("meta");
-  meta.style.display = "flex";
-  document.getElementById("metaMode").textContent = `Mode: ${mode || "-"}`;
-  document.getElementById("metaJson").textContent = `JSON: ${jsonOk ? "ok" : "failed"}`;
-  document.getElementById("metaChars").textContent = `HTML: ${String(html || "").length} chars`;
-}
-
-function showInPreview(html){
-  const iframe = document.getElementById("preview");
-  iframe.srcdoc = html;
-
-  // Auto-resize iframe height to show full content (visual only)
-  setTimeout(() => {
-    try {
-      const d = iframe.contentDocument || iframe.contentWindow.document;
-      const h = Math.max(d.body.scrollHeight, d.documentElement.scrollHeight);
-      iframe.style.height = (h + 24) + "px";
-    } catch (e) {}
-  }, 220);
-}
-
 async function useDemo(){
   hideAlert();
   setDebugText(DEMO_RESUME_TEXT);
-
   document.getElementById("loader").style.display = "block";
   document.getElementById("loader").textContent = "Using demo resume…";
   setStep(2);
@@ -501,7 +541,6 @@ async function generate(){
   setDebugText("");
   portfolioData = null;
   generatedHTML = "";
-
   document.getElementById("htmlBtn").disabled = true;
   document.getElementById("pdfBtn").disabled = true;
 
@@ -528,8 +567,8 @@ async function generate(){
   };
 
   setStep(2);
-
   let mode = "-";
+
   if(isPdf){
     document.getElementById("loader").textContent="Extracting text from PDF…";
     try{
@@ -552,7 +591,6 @@ async function generate(){
     mode = "txt";
   }
 
-  // If extracted text is too small, fall back to server parse (PDF only)
   if(payload.resumeText && payload.resumeText.replace(/\s/g,"").length < 150 && isPdf){
     document.getElementById("loader").textContent="Low text extracted. Uploading PDF to server for parsing…";
     payload.fileBase64 = await toBase64(file);
@@ -585,20 +623,12 @@ async function runGenerateRequest(payload, mode){
     });
 
     const data = await response.json().catch(()=> ({}));
-    if(!response.ok){
-      throw new Error(data?.error || "Generation failed. Please try again.");
-    }
-
-    // Expect { data: {...json...} }
-    if (!data?.data || typeof data.data !== "object") {
-      throw new Error("Server did not return valid JSON profile.");
-    }
+    if(!response.ok) throw new Error(data?.error || "Generation failed. Please try again.");
+    if (!data?.data || typeof data.data !== "object") throw new Error("Server did not return valid JSON profile.");
 
     portfolioData = normalizeProfileJson(data.data);
 
-    // Render HTML locally (single-column, PDF-safe)
     generatedHTML = renderPortfolioHTML(portfolioData, selectedTemplate);
-
     showInPreview(generatedHTML);
     updateMetaUI({ mode, jsonOk: true, html: generatedHTML });
 
@@ -620,16 +650,14 @@ async function runGenerateRequest(payload, mode){
   }
 }
 
-/* ---------------------------
-   JSON Normalization Helpers
-----------------------------*/
+/* JSON normalization */
 function normalizeProfileJson(x){
   const safeArr = (v) => Array.isArray(v) ? v.filter(Boolean) : [];
   const safeStr = (v) => (typeof v === "string" ? v : "").trim();
 
   const contact = x.contact && typeof x.contact === "object" ? x.contact : {};
   const norm = {
-    name: safeStr(x.name),
+    name: safeStr(x.name) || "Your Name",
     title: safeStr(x.title),
     contact: {
       location: safeStr(contact.location),
@@ -667,50 +695,19 @@ function normalizeProfileJson(x){
       url: safeStr(l.url)
     })).filter(l => l.url || l.label)
   };
-
-  if (!norm.name) norm.name = "Your Name";
   return norm;
 }
 
-/* ---------------------------
-   Template Rendering (single column)
-----------------------------*/
+/* Template tokens */
 function templateTokens(templateName){
   if (templateName === "Executive Blue") {
-    return {
-      topBar: "#0B2D45",
-      accent: "#2563EB",
-      subAccent: "#0EA5E9",
-      bg: "#ffffff",
-      sectionTitle: "#0f172a",
-      muted: "#475569",
-      line: "#e5e7eb",
-      font: "system-ui, -apple-system, Segoe UI, Roboto, Arial"
-    };
+    return { topBar:"#0B2D45", accent:"#2563EB", sub:"#0EA5E9", bg:"#fff", ink:"#0f172a", muted:"#475569", line:"#e5e7eb", font:"system-ui, -apple-system, Segoe UI, Roboto, Arial" };
   }
   if (templateName === "Academic Green") {
-    return {
-      topBar: "#0F3D2E",
-      accent: "#0F766E",
-      subAccent: "#16A34A",
-      bg: "#ffffff",
-      sectionTitle: "#0f172a",
-      muted: "#475569",
-      line: "#e5e7eb",
-      font: "system-ui, -apple-system, Segoe UI, Roboto, Arial"
-    };
+    return { topBar:"#0F3D2E", accent:"#0F766E", sub:"#16A34A", bg:"#fff", ink:"#0f172a", muted:"#475569", line:"#e5e7eb", font:"system-ui, -apple-system, Segoe UI, Roboto, Arial" };
   }
   // Modern Minimal
-  return {
-    topBar: "#111827",
-    accent: "#7C3AED",
-    subAccent: "#2563EB",
-    bg: "#ffffff",
-    sectionTitle: "#0f172a",
-    muted: "#475569",
-    line: "#e5e7eb",
-    font: "system-ui, -apple-system, Segoe UI, Roboto, Arial"
-  };
+  return { topBar:"#111827", accent:"#7C3AED", sub:"#2563EB", bg:"#fff", ink:"#0f172a", muted:"#475569", line:"#e5e7eb", font:"system-ui, -apple-system, Segoe UI, Roboto, Arial" };
 }
 
 function escHtml(s){
@@ -746,24 +743,186 @@ function renderBullets(bullets){
   return `<ul class="bullets">${bullets.map(b => `<li>${escHtml(b)}</li>`).join("")}</ul>`;
 }
 
-function renderPortfolioHTML(data, templateName){
-  const t = templateTokens(templateName);
+function ensureDoc(html){
+  const lower = String(html || "").toLowerCase();
+  if (lower.includes("<html") && lower.includes("</html>")) return html;
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>${html}</body></html>`;
+}
 
-  const headerTitle = data.title ? `<div class="ptitle">${escHtml(data.title)}</div>` : "";
-  const summary = data.summary ? `<div class="section"><h2>Summary</h2><p>${escHtml(data.summary)}</p></div>` : "";
+/* Custom content block (injected into custom templates) */
+function renderContentOnly(data){
+  const contactLine = fmtContact(data.contact || {});
+  const header = `
+    <header class="profile-header keep-together">
+      <h1 class="profile-name">${escHtml(data.name)}</h1>
+      ${data.title ? `<div class="profile-title">${escHtml(data.title)}</div>` : ""}
+      ${contactLine ? `<div class="profile-contact">${contactLine}</div>` : ""}
+    </header>
+  `;
 
+  const summary = data.summary ? `<section class="section"><h2>Summary</h2><p>${escHtml(data.summary)}</p></section>` : "";
   const skills = (data.skills && data.skills.length)
-    ? `<div class="section">
-        <h2>Skills</h2>
-        <div class="skills-grid">
-          ${data.skills.map(s => `<div class="skill">${escHtml(s)}</div>`).join("")}
-        </div>
-      </div>`
+    ? `<section class="section"><h2>Skills</h2><div class="skills-grid">${data.skills.map(s => `<div class="skill">${escHtml(s)}</div>`).join("")}</div></section>`
     : "";
 
   const experience = (data.experience && data.experience.length)
-    ? `<div class="section">
-        <h2>Professional Experience</h2>
+    ? `<section class="section"><h2>Professional Experience</h2>
+        ${data.experience.map(e => `
+          <div class="keep-together item">
+            <div class="item-top">
+              <div class="item-left">
+                <div class="item-title">${escHtml(e.role || "")}${e.company ? ` <span class="at">@</span> ${escHtml(e.company)}` : ""}</div>
+                <div class="item-sub">${[e.location].filter(Boolean).map(escHtml).join(" • ")}</div>
+              </div>
+              <div class="item-right">${dateRange(e.start, e.end)}</div>
+            </div>
+            ${renderBullets(e.bullets)}
+          </div>
+        `).join("")}
+      </section>`
+    : "";
+
+  const projects = (data.projects && data.projects.length)
+    ? `<section class="section"><h2>Projects</h2>
+        ${data.projects.map(p => `
+          <div class="keep-together item">
+            <div class="item-top">
+              <div class="item-left">
+                <div class="item-title">${escHtml(p.name)}</div>
+                <div class="item-sub">
+                  ${p.link ? `<span class="link">${escHtml(p.link)}</span>` : ""}
+                  ${p.tech && p.tech.length ? `${p.link ? " • " : ""}${escHtml(p.tech.join(", "))}` : ""}
+                </div>
+              </div>
+            </div>
+            ${renderBullets(p.bullets)}
+          </div>
+        `).join("")}
+      </section>`
+    : "";
+
+  const education = (data.education && data.education.length)
+    ? `<section class="section"><h2>Education</h2>
+        ${data.education.map(ed => `
+          <div class="keep-together item">
+            <div class="item-top">
+              <div class="item-left">
+                <div class="item-title">${escHtml(ed.degree || "")}${ed.school ? ` <span class="at">@</span> ${escHtml(ed.school)}` : ""}</div>
+                <div class="item-sub">${escHtml(ed.details || "")}</div>
+              </div>
+              <div class="item-right">${dateRange(ed.start, ed.end)}</div>
+            </div>
+          </div>
+        `).join("")}
+      </section>`
+    : "";
+
+  const certs = (data.certifications && data.certifications.length)
+    ? `<section class="section"><h2>Certifications</h2><ul class="bullets">${data.certifications.map(c => `<li>${escHtml(c)}</li>`).join("")}</ul></section>`
+    : "";
+
+  const links = (data.links && data.links.length)
+    ? `<section class="section"><h2>Links</h2><ul class="bullets">${data.links.map(l => `<li><strong>${escHtml(l.label || "Link")}:</strong> ${escHtml(l.url)}</li>`).join("")}</ul></section>`
+    : "";
+
+  return `
+    <div class="wrap">
+      ${header}
+      ${summary}
+      ${skills}
+      ${experience}
+      ${projects}
+      ${education}
+      ${certs}
+      ${links}
+    </div>
+  `;
+}
+
+/* Render final HTML */
+function renderPortfolioHTML(data, templateName){
+  // Custom upload handling (HTML or PDF theme)
+  if (templateName === "Custom Upload") {
+    const contentOnly = renderContentOnly(data);
+
+    if (customTemplateMode === "html" && customTemplateHTML && customTemplateHTML.includes("{{CONTENT}}")) {
+      return ensureDoc(customTemplateHTML.replace("{{CONTENT}}", contentOnly));
+    }
+
+    if (customTemplateMode === "pdf" && customTemplatePdfDataUrl) {
+      // PDF used as visual theme (first page as image)
+      const themed = `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${escHtml(data.name)} — Portfolio</title>
+<style>
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; background:#fff; color:#0f172a; font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+  .pdf-hero{
+    position:relative;
+    width:100%;
+    border-bottom:1px solid #e5e7eb;
+    background:#fff;
+  }
+  .pdf-hero img{
+    width:100%;
+    max-height:320px;
+    object-fit:cover;
+    display:block;
+    filter:saturate(1.02);
+  }
+  .wrap{ max-width:900px; margin:0 auto; padding:18px; }
+  .section{ padding:14px 0; border-bottom:1px solid #e5e7eb; }
+  .section:last-child{ border-bottom:none; }
+  h2{ margin:0 0 10px; font-size:14px; text-transform:uppercase; letter-spacing:.12em; color:#111827; }
+  p{ margin:0; line-height:1.55; }
+  .skills-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-top:8px; }
+  .skill{ border:1px solid #e5e7eb; border-radius:12px; padding:8px 10px; font-weight:800; background:#fff; }
+  .item{ padding:10px 0; }
+  .item-top{ display:flex; justify-content:space-between; gap:14px; align-items:flex-start; }
+  .item-title{ font-weight:900; }
+  .item-sub{ margin-top:4px; color:#475569; font-weight:700; font-size:12px; }
+  .item-right{ color:#475569; font-weight:800; font-size:12px; white-space:nowrap; }
+  .at{ color:#475569; font-weight:800; }
+  .link{ color:#0ea5e9; font-weight:900; }
+  .bullets{ margin:8px 0 0 18px; padding:0; }
+  .bullets li{ margin:6px 0; line-height:1.45; }
+  .keep-together{ break-inside:avoid; page-break-inside:avoid; }
+  .profile-name{ margin:0; font-size:30px; font-weight:950; }
+  .profile-title{ margin-top:6px; font-weight:800; color:#334155; }
+  .profile-contact{ margin-top:10px; font-size:13px; font-weight:800; color:#475569; }
+  @media print {
+    .keep-together{ break-inside:avoid; page-break-inside:avoid; }
+    .pdf-hero img{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+  <div class="pdf-hero"><img src="${customTemplatePdfDataUrl}" alt="Template theme"></div>
+  ${contentOnly}
+</body>
+</html>`;
+      return themed;
+    }
+
+    // If custom chosen but no template uploaded: fall back safely
+    templateName = "Modern Minimal";
+  }
+
+  const t = templateTokens(templateName);
+  const contactLine = fmtContact(data.contact || {});
+  const headerTitle = data.title ? `<div class="ptitle">${escHtml(data.title)}</div>` : "";
+
+  const summary = data.summary ? `<div class="section"><h2>Summary</h2><p>${escHtml(data.summary)}</p></div>` : "";
+  const skills = (data.skills && data.skills.length)
+    ? `<div class="section"><h2>Skills</h2><div class="skills-grid">${data.skills.map(s => `<div class="skill">${escHtml(s)}</div>`).join("")}</div></div>`
+    : "";
+
+  const experience = (data.experience && data.experience.length)
+    ? `<div class="section"><h2>Professional Experience</h2>
         ${data.experience.map(e => `
           <div class="keep-together item">
             <div class="item-top">
@@ -780,8 +939,7 @@ function renderPortfolioHTML(data, templateName){
     : "";
 
   const projects = (data.projects && data.projects.length)
-    ? `<div class="section">
-        <h2>Projects</h2>
+    ? `<div class="section"><h2>Projects</h2>
         ${data.projects.map(p => `
           <div class="keep-together item">
             <div class="item-top">
@@ -800,8 +958,7 @@ function renderPortfolioHTML(data, templateName){
     : "";
 
   const education = (data.education && data.education.length)
-    ? `<div class="section">
-        <h2>Education</h2>
+    ? `<div class="section"><h2>Education</h2>
         ${data.education.map(ed => `
           <div class="keep-together item">
             <div class="item-top">
@@ -817,24 +974,12 @@ function renderPortfolioHTML(data, templateName){
     : "";
 
   const certs = (data.certifications && data.certifications.length)
-    ? `<div class="section">
-        <h2>Certifications</h2>
-        <ul class="bullets">
-          ${data.certifications.map(c => `<li>${escHtml(c)}</li>`).join("")}
-        </ul>
-      </div>`
+    ? `<div class="section"><h2>Certifications</h2><ul class="bullets">${data.certifications.map(c => `<li>${escHtml(c)}</li>`).join("")}</ul></div>`
     : "";
 
   const links = (data.links && data.links.length)
-    ? `<div class="section">
-        <h2>Links</h2>
-        <ul class="bullets">
-          ${data.links.map(l => `<li><strong>${escHtml(l.label || "Link")}:</strong> ${escHtml(l.url)}</li>`).join("")}
-        </ul>
-      </div>`
+    ? `<div class="section"><h2>Links</h2><ul class="bullets">${data.links.map(l => `<li><strong>${escHtml(l.label || "Link")}:</strong> ${escHtml(l.url)}</li>`).join("")}</ul></div>`
     : "";
-
-  const contactLine = fmtContact(data.contact || {});
 
   return `<!DOCTYPE html>
 <html>
@@ -843,52 +988,20 @@ function renderPortfolioHTML(data, templateName){
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${escHtml(data.name)} — Portfolio</title>
 <style>
-  :root{
-    --topbar:${t.topBar};
-    --accent:${t.accent};
-    --sub:${t.subAccent};
-    --bg:${t.bg};
-    --ink:${t.sectionTitle};
-    --muted:${t.muted};
-    --line:${t.line};
-  }
+  :root{ --topbar:${t.topBar}; --accent:${t.accent}; --sub:${t.sub}; --bg:${t.bg}; --ink:${t.ink}; --muted:${t.muted}; --line:${t.line}; }
   *{ box-sizing:border-box; }
   html,body{ margin:0; padding:0; background:var(--bg); color:var(--ink); font-family:${t.font}; }
-  a{ color:var(--accent); text-decoration:none; }
-
   .topbar{ background:var(--topbar); padding:22px 18px; }
   .name{ color:white; font-size:30px; font-weight:900; text-align:center; letter-spacing:.2px; }
   .ptitle{ color:rgba(255,255,255,0.85); text-align:center; margin-top:6px; font-weight:700; }
   .contact{ color:rgba(255,255,255,0.85); text-align:center; margin-top:10px; font-size:13px; font-weight:700; }
-
   .wrap{ max-width:900px; margin:0 auto; padding:18px; }
   .section{ padding:14px 0; border-bottom:1px solid var(--line); }
   .section:last-child{ border-bottom:none; }
-
-  h2{
-    margin:0 0 10px;
-    font-size:14px;
-    text-transform:uppercase;
-    letter-spacing:.12em;
-    color:var(--accent);
-  }
-  p{ margin:0; color:var(--ink); line-height:1.55; }
-
-  .skills-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));
-    gap:10px;
-    margin-top:8px;
-  }
-  .skill{
-    border:1px solid var(--line);
-    border-radius:12px;
-    padding:8px 10px;
-    font-weight:800;
-    color:var(--ink);
-    background:#fff;
-  }
-
+  h2{ margin:0 0 10px; font-size:14px; text-transform:uppercase; letter-spacing:.12em; color:var(--accent); }
+  p{ margin:0; line-height:1.55; }
+  .skills-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin-top:8px; }
+  .skill{ border:1px solid var(--line); border-radius:12px; padding:8px 10px; font-weight:800; background:#fff; }
   .item{ padding:10px 0; }
   .item-top{ display:flex; justify-content:space-between; gap:14px; align-items:flex-start; }
   .item-title{ font-weight:900; }
@@ -896,19 +1009,10 @@ function renderPortfolioHTML(data, templateName){
   .item-right{ color:var(--muted); font-weight:800; font-size:12px; white-space:nowrap; }
   .at{ color:var(--muted); font-weight:800; }
   .link{ color:var(--sub); font-weight:900; }
-
-  .bullets{
-    margin:8px 0 0 18px;
-    padding:0;
-    color:var(--ink);
-  }
+  .bullets{ margin:8px 0 0 18px; padding:0; }
   .bullets li{ margin:6px 0; line-height:1.45; }
   .keep-together{ break-inside:avoid; page-break-inside:avoid; }
-
-  @media print {
-    .topbar{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .keep-together{ break-inside:avoid; page-break-inside:avoid; }
-  }
+  @media print { .topbar{ -webkit-print-color-adjust: exact; print-color-adjust: exact; } .keep-together{ break-inside:avoid; page-break-inside:avoid; } }
 </style>
 </head>
 <body>
@@ -931,9 +1035,7 @@ function renderPortfolioHTML(data, templateName){
 </html>`;
 }
 
-/* ---------------------------
-   Downloads
-----------------------------*/
+/* Downloads */
 function downloadHTML(){
   if(!generatedHTML){ showAlert("Generate a profile first."); return; }
   const blob = new Blob([generatedHTML], { type:"text/html" });
@@ -946,7 +1048,6 @@ function downloadHTML(){
 function downloadPDF(){
   if(!generatedHTML){ showAlert("Generate a profile first."); return; }
 
-  // Render with html2pdf from DOM wrapper to reduce clipping
   const doc = new DOMParser().parseFromString(generatedHTML, "text/html");
   const styleTags = Array.from(doc.querySelectorAll("style")).map(s => s.outerHTML).join("\n");
 
@@ -977,13 +1078,7 @@ function downloadPDF(){
     filename:"portfolio.pdf",
     margin: 0,
     image:{type:"jpeg",quality:0.98},
-    html2canvas:{
-      scale:2,
-      useCORS:true,
-      scrollY:0,
-      windowWidth:794,
-      backgroundColor:"#ffffff"
-    },
+    html2canvas:{ scale:2, useCORS:true, scrollY:0, windowWidth:794, backgroundColor:"#ffffff" },
     jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
     pagebreak:{mode:["css","legacy"]}
   }).from(wrapper).save();

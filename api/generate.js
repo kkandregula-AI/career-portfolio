@@ -73,12 +73,10 @@ export default async function handler(req, res) {
 
     if (text.replace(/\s/g, "").length < 120) {
       return res.status(400).json({
-        error:
-          "Not enough readable text extracted. Try Print→Save as PDF (text-based) or upload TXT."
+        error: "Not enough readable text extracted. Try Print→Save as PDF (text-based) or upload TXT."
       });
     }
 
-    // Bigger input allowance (still safe)
     const HARD_LIMIT = 30_000;
     if (text.length > HARD_LIMIT) {
       const head = text.slice(0, 19_000);
