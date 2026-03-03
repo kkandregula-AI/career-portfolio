@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>ElevateCV</title>
 
 <link rel="icon" type="image/png" href="logo.png">
@@ -34,12 +34,12 @@
     color:var(--ink);
   }
   .container{ max-width:1100px; margin:auto; padding:40px 20px; }
-  .hero{ text-align:center; margin-bottom:26px; }
+  .hero{ text-align:center; margin-bottom:22px; }
   .hero img{ max-width:320px; width:100%; margin-bottom:10px; }
   .hero p{ font-size:16px; color:var(--muted); margin:0; }
 
-  .grid{ display:grid; grid-template-columns: 1fr 1fr; gap:18px; }
-  @media (max-width: 920px){ .grid{ grid-template-columns:1fr; } }
+  .grid{ display:grid; grid-template-columns: 420px 1fr; gap:18px; align-items:start; }
+  @media (max-width: 980px){ .grid{ grid-template-columns:1fr; } }
 
   .card{
     background:var(--card);
@@ -49,7 +49,7 @@
     border:1px solid rgba(0,0,0,0.03);
   }
 
-  .label{ font-size:12px; color:var(--muted); margin:0 0 8px; }
+  .label{ font-size:12px; color:var(--muted); margin:0 0 8px; font-weight:800; }
   input, textarea{
     width:100%;
     padding:12px;
@@ -66,7 +66,7 @@
     padding:12px 16px;
     border:none;
     border-radius:12px;
-    font-weight:800;
+    font-weight:900;
     cursor:pointer;
     background:linear-gradient(90deg,var(--accent1),var(--accent2));
     color:white;
@@ -75,11 +75,11 @@
     background:#f1f5f9;
     color:var(--ink);
     border:1px solid var(--line);
-    font-weight:800;
+    font-weight:900;
   }
   .btn:disabled{ opacity:.55; cursor:not-allowed; }
 
-  /* Template thumbnails */
+  /* Templates */
   .templates{
     display:grid;
     grid-template-columns: repeat(3, 1fr);
@@ -87,7 +87,6 @@
     margin:6px 0 14px;
   }
   @media (max-width: 520px){ .templates{ grid-template-columns:1fr; } }
-
   .tpl{
     border:1px solid var(--line);
     border-radius:14px;
@@ -102,44 +101,19 @@
     box-shadow: 0 12px 30px rgba(37,99,235,0.12);
   }
   .tpl-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
-  .tpl-title{ font-weight:900; font-size:13px; }
-  .chip{ font-size:11px; color:var(--muted); border:1px solid var(--line); padding:3px 8px; border-radius:999px; background:#fff; }
+  .tpl-title{ font-weight:950; font-size:13px; }
+  .chip{ font-size:11px; color:var(--muted); border:1px solid var(--line); padding:3px 8px; border-radius:999px; background:#fff; font-weight:800; }
   .tpl-mini{
-    height:54px;
-    border-radius:10px;
-    border:1px solid rgba(0,0,0,0.04);
+    height:54px;border-radius:10px;border:1px solid rgba(0,0,0,0.04);
     background: linear-gradient(180deg, rgba(2,6,23,0.03), rgba(2,6,23,0.00));
-    position:relative;
-    overflow:hidden;
+    position:relative; overflow:hidden;
   }
-  .tpl-mini::before{
-    content:"";
-    position:absolute; left:10px; top:10px;
-    width:44%; height:8px; border-radius:999px;
-    background: rgba(15,23,42,0.12);
-  }
-  .tpl-mini::after{
-    content:"";
-    position:absolute; left:10px; top:24px;
-    width:70%; height:6px; border-radius:999px;
-    background: rgba(15,23,42,0.08);
-  }
-  .tpl-mini b{
-    position:absolute; right:-18px; bottom:-18px;
-    width:60px; height:60px; border-radius:18px;
-    background: linear-gradient(90deg,var(--accent1),var(--accent2));
-    opacity:.18;
-    display:block;
-  }
+  .tpl-mini::before{ content:""; position:absolute; left:10px; top:10px; width:44%; height:8px; border-radius:999px; background: rgba(15,23,42,0.12); }
+  .tpl-mini::after{ content:""; position:absolute; left:10px; top:24px; width:70%; height:6px; border-radius:999px; background: rgba(15,23,42,0.08); }
+  .tpl-mini b{ position:absolute; right:-18px; bottom:-18px; width:60px; height:60px; border-radius:18px; background: linear-gradient(90deg,var(--accent1),var(--accent2)); opacity:.18; display:block; }
 
-  /* Progress stepper */
-  .stepper{
-    display:flex;
-    gap:10px;
-    align-items:center;
-    flex-wrap:wrap;
-    margin:0 0 14px;
-  }
+  /* Stepper */
+  .stepper{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:0 0 14px; }
   .step{
     display:flex; align-items:center; gap:8px;
     padding:8px 10px;
@@ -148,32 +122,20 @@
     background:#fff;
     color:var(--muted);
     font-size:12px;
-    font-weight:800;
+    font-weight:900;
   }
-  .dot{
-    width:10px; height:10px; border-radius:999px;
-    background: rgba(100,116,139,0.35);
-  }
+  .dot{ width:10px; height:10px; border-radius:999px; background: rgba(100,116,139,0.35); }
   .step.active{ color:var(--ink); border-color: rgba(37,99,235,0.35); }
   .step.active .dot{ background: linear-gradient(90deg,var(--accent1),var(--accent2)); }
   .step.done{ color:var(--ink); }
   .step.done .dot{ background: #22c55e; }
 
-  iframe{
-    width:100%;
-    height:720px; /* fallback; auto-resized after generate */
-    border:none;
-    border-radius:16px;
-    background:white;
-  }
+  /* Preview */
+  #previewCard{ padding:0; overflow:hidden; }
+  iframe{ width:100%; height:820px; border:none; background:white; }
 
   .hint{ font-size:12px; color:var(--muted); margin-top:-6px; margin-bottom:12px; }
-  .loader{
-    display:none;
-    margin-top:12px;
-    color:var(--muted);
-    font-weight:900;
-  }
+  .loader{ display:none; margin-top:12px; color:var(--muted); font-weight:950; }
   .inline-alert{
     display:none;
     margin-top:10px;
@@ -183,26 +145,10 @@
     background: rgba(239,68,68,0.07);
     color:#991b1b;
     font-size:13px;
-    font-weight:800;
+    font-weight:900;
     white-space:pre-wrap;
   }
-
   .small{ font-size:12px;color:var(--muted); margin-top:10px; }
-  .meta{
-    margin-top:10px;
-    font-size:12px;
-    color:var(--muted);
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-  }
-  .pill{
-    border:1px solid var(--line);
-    background:#fff;
-    padding:5px 10px;
-    border-radius:999px;
-    font-weight:800;
-  }
 
   details{ margin-top:10px; }
   pre{
@@ -213,6 +159,22 @@
     overflow:auto;
     max-height:260px;
     font-size:12px;
+  }
+
+  .meta{
+    display:none;
+    margin-top:10px;
+    font-size:12px;
+    color:var(--muted);
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .pill{
+    border:1px solid var(--line);
+    background:#fff;
+    padding:5px 10px;
+    border-radius:999px;
+    font-weight:900;
   }
 </style>
 </head>
@@ -227,7 +189,7 @@
 
   <div class="grid">
 
-    <!-- Left: Controls -->
+    <!-- Controls -->
     <div class="card">
 
       <div class="stepper">
@@ -239,7 +201,7 @@
 
       <p class="label">Resume (PDF or TXT)</p>
       <input type="file" id="file" accept=".pdf,.txt,application/pdf,text/plain">
-      <div class="hint">DOCX disabled for speed. PDF/TXT only.</div>
+      <div class="hint">DOCX disabled for stability. PDF/TXT only.</div>
 
       <p class="label">Choose a template</p>
       <div class="templates">
@@ -276,10 +238,10 @@
       <div class="loader" id="loader">Working…</div>
       <div class="inline-alert" id="alert"></div>
 
-      <div class="meta" id="meta" style="display:none;">
-        <span class="pill" id="metaChars">Output: 0 chars</span>
-        <span class="pill" id="metaClosed">HTML: not closed</span>
+      <div class="meta" id="meta">
         <span class="pill" id="metaMode">Mode: -</span>
+        <span class="pill" id="metaJson">JSON: -</span>
+        <span class="pill" id="metaChars">HTML: 0 chars</span>
       </div>
 
       <details id="debugBox" style="display:none;">
@@ -287,11 +249,11 @@
         <pre id="debugText"></pre>
       </details>
 
-      <div class="small">Tip: If your resume is highly designed, try “Print → Save as PDF” and upload again.</div>
+      <div class="small">Tip: For highly designed resumes, use “Print → Save as PDF” and upload again.</div>
     </div>
 
-    <!-- Right: Preview -->
-    <div class="card">
+    <!-- Preview -->
+    <div class="card" id="previewCard">
       <iframe id="preview" title="Portfolio Preview"></iframe>
     </div>
 
@@ -299,9 +261,10 @@
 </div>
 
 <script>
-let generatedHTML = "";
 let selectedTemplate = "Modern Minimal";
 let lastExtractedText = "";
+let portfolioData = null;       // JSON from API
+let generatedHTML = "";         // HTML rendered locally from JSON
 
 const DEMO_RESUME_TEXT = `
 KRISHNA MURTHY K.
@@ -327,17 +290,17 @@ EDUCATION
 B.Tech — Computer Science
 `.trim();
 
-function cleanHTML(raw){
-  return String(raw || "").replace(/```html/gi,"").replace(/```/g,"").trim();
-}
-function isHtmlClosed(s){
-  return String(s || "").toLowerCase().includes("</html>");
-}
-
 function selectTemplate(el){
   document.querySelectorAll(".tpl").forEach(x => x.classList.remove("active"));
   el.classList.add("active");
   selectedTemplate = el.getAttribute("data-template") || "Modern Minimal";
+
+  // If we already have data, re-render instantly
+  if (portfolioData) {
+    generatedHTML = renderPortfolioHTML(portfolioData, selectedTemplate);
+    showInPreview(generatedHTML);
+    updateMetaUI({ mode: document.getElementById("metaMode")?.textContent?.replace("Mode: ","") || "-", jsonOk: true, html: generatedHTML });
+  }
 }
 
 function setStep(step){
@@ -359,14 +322,6 @@ function hideAlert(){
   const a = document.getElementById("alert");
   a.textContent = "";
   a.style.display = "none";
-}
-
-function updateMeta({ html, mode }){
-  const meta = document.getElementById("meta");
-  meta.style.display = "flex";
-  document.getElementById("metaChars").textContent = `Output: ${String(html || "").length} chars`;
-  document.getElementById("metaClosed").textContent = isHtmlClosed(html) ? "HTML: closed" : "HTML: not closed";
-  document.getElementById("metaMode").textContent = `Mode: ${mode || "-"}`;
 }
 
 function setDebugText(text){
@@ -394,7 +349,7 @@ function toBase64(file){
 /**
  * Improved PDF extraction:
  * - sort by y desc then x asc
- * - group items into "lines" by similar y (preserves bullets/roles)
+ * - group items into lines by similar y (preserves bullets/roles)
  */
 async function extractPdfTextClient(file){
   const arrayBuffer = await file.arrayBuffer();
@@ -435,6 +390,28 @@ async function extractPdfTextClient(file){
   return full.join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
+function updateMetaUI({ mode, jsonOk, html }){
+  const meta = document.getElementById("meta");
+  meta.style.display = "flex";
+  document.getElementById("metaMode").textContent = `Mode: ${mode || "-"}`;
+  document.getElementById("metaJson").textContent = `JSON: ${jsonOk ? "ok" : "failed"}`;
+  document.getElementById("metaChars").textContent = `HTML: ${String(html || "").length} chars`;
+}
+
+function showInPreview(html){
+  const iframe = document.getElementById("preview");
+  iframe.srcdoc = html;
+
+  // Auto-resize iframe height to show full content (visual only)
+  setTimeout(() => {
+    try {
+      const d = iframe.contentDocument || iframe.contentWindow.document;
+      const h = Math.max(d.body.scrollHeight, d.documentElement.scrollHeight);
+      iframe.style.height = (h + 24) + "px";
+    } catch (e) {}
+  }, 220);
+}
+
 async function useDemo(){
   hideAlert();
   setDebugText(DEMO_RESUME_TEXT);
@@ -447,14 +424,18 @@ async function useDemo(){
     resumeText: DEMO_RESUME_TEXT,
     mimeType: "text/plain",
     role: document.getElementById("role").value,
-    notes: document.getElementById("notes").value,
-    template: selectedTemplate
+    notes: document.getElementById("notes").value
   }, "demo");
 }
 
 async function generate(){
   hideAlert();
   setDebugText("");
+  portfolioData = null;
+  generatedHTML = "";
+
+  document.getElementById("htmlBtn").disabled = true;
+  document.getElementById("pdfBtn").disabled = true;
 
   const file = document.getElementById("file").files[0];
   if(!file){
@@ -465,7 +446,7 @@ async function generate(){
   const isPdf = file.type === "application/pdf" || (file.name || "").toLowerCase().endsWith(".pdf");
   const isTxt = file.type === "text/plain" || (file.name || "").toLowerCase().endsWith(".txt");
   if(!isPdf && !isTxt){
-    showAlert("Only PDF or TXT is supported for faster generation.");
+    showAlert("Only PDF or TXT is supported for stability.");
     return;
   }
 
@@ -475,8 +456,7 @@ async function generate(){
 
   const payload = {
     role: document.getElementById("role").value,
-    notes: document.getElementById("notes").value,
-    template: selectedTemplate
+    notes: document.getElementById("notes").value
   };
 
   setStep(2);
@@ -525,12 +505,10 @@ async function generate(){
 async function runGenerateRequest(payload, mode){
   const genBtn = document.getElementById("genBtn");
   genBtn.disabled = true;
-  document.getElementById("htmlBtn").disabled = true;
-  document.getElementById("pdfBtn").disabled = true;
 
   try{
     setStep(3);
-    document.getElementById("loader").textContent = "Generating portfolio with AI…";
+    document.getElementById("loader").textContent = "Generating structured profile (JSON)…";
 
     const response = await fetch("/api/generate",{
       method:"POST",
@@ -543,42 +521,354 @@ async function runGenerateRequest(payload, mode){
       throw new Error(data?.error || "Generation failed. Please try again.");
     }
 
-    generatedHTML = cleanHTML(data.text);
+    // Expect { data: {...json...} }
+    if (!data?.data || typeof data.data !== "object") {
+      throw new Error("Server did not return valid JSON profile.");
+    }
 
-    // If still not closed, warn (backend should close)
-    updateMeta({ html: generatedHTML, mode });
+    portfolioData = normalizeProfileJson(data.data);
 
-    const iframe = document.getElementById("preview");
-    iframe.srcdoc = generatedHTML;
+    // Render HTML locally (single-column, PDF-safe)
+    generatedHTML = renderPortfolioHTML(portfolioData, selectedTemplate);
 
-    // Auto-resize iframe so content isn't visually cut
-    setTimeout(() => {
-      try {
-        const d = iframe.contentDocument || iframe.contentWindow.document;
-        const h = Math.max(d.body.scrollHeight, d.documentElement.scrollHeight);
-        iframe.style.height = (h + 24) + "px";
-      } catch (e) {}
-    }, 220);
+    showInPreview(generatedHTML);
+    updateMetaUI({ mode, jsonOk: true, html: generatedHTML });
 
     setStep(4);
     document.getElementById("loader").style.display="none";
-    document.getElementById("htmlBtn").disabled=false;
-    document.getElementById("pdfBtn").disabled=false;
+    document.getElementById("htmlBtn").disabled = false;
+    document.getElementById("pdfBtn").disabled = false;
 
-    if (window.innerWidth < 920) {
-      iframe.scrollIntoView({ behavior:"smooth", block:"start" });
+    if (window.innerWidth < 980) {
+      document.getElementById("preview").scrollIntoView({ behavior:"smooth", block:"start" });
     }
   }catch(e){
     document.getElementById("loader").style.display="none";
     setStep(1);
+    updateMetaUI({ mode, jsonOk: false, html: "" });
     showAlert(e.message || String(e));
   }finally{
     genBtn.disabled = false;
   }
 }
 
+/* ---------------------------
+   JSON Normalization Helpers
+----------------------------*/
+function normalizeProfileJson(x){
+  const safeArr = (v) => Array.isArray(v) ? v.filter(Boolean) : [];
+  const safeStr = (v) => (typeof v === "string" ? v : "").trim();
+
+  const contact = x.contact && typeof x.contact === "object" ? x.contact : {};
+  const norm = {
+    name: safeStr(x.name),
+    title: safeStr(x.title),
+    contact: {
+      location: safeStr(contact.location),
+      phone: safeStr(contact.phone),
+      email: safeStr(contact.email),
+      linkedin: safeStr(contact.linkedin),
+      website: safeStr(contact.website)
+    },
+    summary: safeStr(x.summary),
+    skills: safeArr(x.skills).map(safeStr).filter(Boolean),
+    experience: safeArr(x.experience).map(e => ({
+      company: safeStr(e.company),
+      role: safeStr(e.role),
+      location: safeStr(e.location),
+      start: safeStr(e.start),
+      end: safeStr(e.end),
+      bullets: safeArr(e.bullets).map(safeStr).filter(Boolean)
+    })).filter(e => e.company || e.role),
+    projects: safeArr(x.projects).map(p => ({
+      name: safeStr(p.name),
+      link: safeStr(p.link),
+      tech: safeArr(p.tech).map(safeStr).filter(Boolean),
+      bullets: safeArr(p.bullets).map(safeStr).filter(Boolean)
+    })).filter(p => p.name),
+    education: safeArr(x.education).map(ed => ({
+      school: safeStr(ed.school),
+      degree: safeStr(ed.degree),
+      start: safeStr(ed.start),
+      end: safeStr(ed.end),
+      details: safeStr(ed.details)
+    })).filter(ed => ed.school || ed.degree),
+    certifications: safeArr(x.certifications).map(safeStr).filter(Boolean),
+    links: safeArr(x.links).map(l => ({
+      label: safeStr(l.label),
+      url: safeStr(l.url)
+    })).filter(l => l.url || l.label)
+  };
+
+  // Basic fallback name
+  if (!norm.name) norm.name = "Your Name";
+  return norm;
+}
+
+/* ---------------------------
+   Template Rendering (single column)
+----------------------------*/
+function templateTokens(templateName){
+  // Single column, PDF-safe (no complex multi-col)
+  if (templateName === "Executive Blue") {
+    return {
+      topBar: "#0B2D45",
+      accent: "#2563EB",
+      subAccent: "#0EA5E9",
+      bg: "#ffffff",
+      sectionTitle: "#0f172a",
+      muted: "#475569",
+      line: "#e5e7eb",
+      font: "system-ui, -apple-system, Segoe UI, Roboto, Arial"
+    };
+  }
+  if (templateName === "Academic Green") {
+    return {
+      topBar: "#0F3D2E",
+      accent: "#0F766E",
+      subAccent: "#16A34A",
+      bg: "#ffffff",
+      sectionTitle: "#0f172a",
+      muted: "#475569",
+      line: "#e5e7eb",
+      font: "system-ui, -apple-system, Segoe UI, Roboto, Arial"
+    };
+  }
+  // Modern Minimal
+  return {
+    topBar: "#111827",
+    accent: "#7C3AED",
+    subAccent: "#2563EB",
+    bg: "#ffffff",
+    sectionTitle: "#0f172a",
+    muted: "#475569",
+    line: "#e5e7eb",
+    font: "system-ui, -apple-system, Segoe UI, Roboto, Arial"
+  };
+}
+
+function escHtml(s){
+  return String(s || "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function fmtContact(c){
+  const parts = [];
+  if (c.location) parts.push(escHtml(c.location));
+  if (c.phone) parts.push(escHtml(c.phone));
+  if (c.email) parts.push(escHtml(c.email));
+  if (c.linkedin) parts.push(escHtml(c.linkedin));
+  if (c.website) parts.push(escHtml(c.website));
+  return parts.join("  •  ");
+}
+
+function dateRange(start, end){
+  const a = (start || "").trim();
+  const b = (end || "").trim();
+  if (a && b) return `${escHtml(a)} – ${escHtml(b)}`;
+  if (a) return `${escHtml(a)} – Present`;
+  if (b) return escHtml(b);
+  return "";
+}
+
+function renderBullets(bullets){
+  if (!bullets || !bullets.length) return "";
+  return `<ul class="bullets">${bullets.map(b => `<li>${escHtml(b)}</li>`).join("")}</ul>`;
+}
+
+function renderPortfolioHTML(data, templateName){
+  const t = templateTokens(templateName);
+
+  const headerTitle = data.title ? `<div class="ptitle">${escHtml(data.title)}</div>` : "";
+  const summary = data.summary ? `<div class="section"><h2>Summary</h2><p>${escHtml(data.summary)}</p></div>` : "";
+
+  const skills = (data.skills && data.skills.length)
+    ? `<div class="section">
+        <h2>Skills</h2>
+        <div class="skills-grid">
+          ${data.skills.map(s => `<div class="skill">${escHtml(s)}</div>`).join("")}
+        </div>
+      </div>`
+    : "";
+
+  const experience = (data.experience && data.experience.length)
+    ? `<div class="section">
+        <h2>Professional Experience</h2>
+        ${data.experience.map(e => `
+          <div class="keep-together item">
+            <div class="item-top">
+              <div class="item-left">
+                <div class="item-title">${escHtml(e.role || "")}${e.company ? ` <span class="at">@</span> ${escHtml(e.company)}` : ""}</div>
+                <div class="item-sub">${[e.location].filter(Boolean).map(escHtml).join(" • ")}</div>
+              </div>
+              <div class="item-right">${dateRange(e.start, e.end)}</div>
+            </div>
+            ${renderBullets(e.bullets)}
+          </div>
+        `).join("")}
+      </div>`
+    : "";
+
+  const projects = (data.projects && data.projects.length)
+    ? `<div class="section">
+        <h2>Projects</h2>
+        ${data.projects.map(p => `
+          <div class="keep-together item">
+            <div class="item-top">
+              <div class="item-left">
+                <div class="item-title">${escHtml(p.name)}</div>
+                <div class="item-sub">
+                  ${p.link ? `<span class="link">${escHtml(p.link)}</span>` : ""}
+                  ${p.tech && p.tech.length ? `${p.link ? " • " : ""}${escHtml(p.tech.join(", "))}` : ""}
+                </div>
+              </div>
+            </div>
+            ${renderBullets(p.bullets)}
+          </div>
+        `).join("")}
+      </div>`
+    : "";
+
+  const education = (data.education && data.education.length)
+    ? `<div class="section">
+        <h2>Education</h2>
+        ${data.education.map(ed => `
+          <div class="keep-together item">
+            <div class="item-top">
+              <div class="item-left">
+                <div class="item-title">${escHtml(ed.degree || "")}${ed.school ? ` <span class="at">@</span> ${escHtml(ed.school)}` : ""}</div>
+                <div class="item-sub">${escHtml(ed.details || "")}</div>
+              </div>
+              <div class="item-right">${dateRange(ed.start, ed.end)}</div>
+            </div>
+          </div>
+        `).join("")}
+      </div>`
+    : "";
+
+  const certs = (data.certifications && data.certifications.length)
+    ? `<div class="section">
+        <h2>Certifications</h2>
+        <ul class="bullets">
+          ${data.certifications.map(c => `<li>${escHtml(c)}</li>`).join("")}
+        </ul>
+      </div>`
+    : "";
+
+  const links = (data.links && data.links.length)
+    ? `<div class="section">
+        <h2>Links</h2>
+        <ul class="bullets">
+          ${data.links.map(l => `<li><strong>${escHtml(l.label || "Link")}:</strong> ${escHtml(l.url)}</li>`).join("")}
+        </ul>
+      </div>`
+    : "";
+
+  const contactLine = fmtContact(data.contact || {});
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${escHtml(data.name)} — Portfolio</title>
+<style>
+  :root{
+    --topbar:${t.topBar};
+    --accent:${t.accent};
+    --sub:${t.subAccent};
+    --bg:${t.bg};
+    --ink:${t.sectionTitle};
+    --muted:${t.muted};
+    --line:${t.line};
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; background:var(--bg); color:var(--ink); font-family:${t.font}; }
+  a{ color:var(--accent); text-decoration:none; }
+
+  .topbar{ background:var(--topbar); padding:22px 18px; }
+  .name{ color:white; font-size:30px; font-weight:900; text-align:center; letter-spacing:.2px; }
+  .ptitle{ color:rgba(255,255,255,0.85); text-align:center; margin-top:6px; font-weight:700; }
+  .contact{ color:rgba(255,255,255,0.85); text-align:center; margin-top:10px; font-size:13px; font-weight:700; }
+
+  .wrap{ max-width:900px; margin:0 auto; padding:18px; }
+  .section{ padding:14px 0; border-bottom:1px solid var(--line); }
+  .section:last-child{ border-bottom:none; }
+
+  h2{
+    margin:0 0 10px;
+    font-size:14px;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    color:var(--accent);
+  }
+  p{ margin:0; color:var(--ink); line-height:1.55; }
+  .skills-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));
+    gap:10px;
+    margin-top:8px;
+  }
+  .skill{
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:8px 10px;
+    font-weight:800;
+    color:var(--ink);
+    background:#fff;
+  }
+
+  .item{ padding:10px 0; }
+  .item-top{ display:flex; justify-content:space-between; gap:14px; align-items:flex-start; }
+  .item-title{ font-weight:900; }
+  .item-sub{ margin-top:4px; color:var(--muted); font-weight:700; font-size:12px; }
+  .item-right{ color:var(--muted); font-weight:800; font-size:12px; white-space:nowrap; }
+  .at{ color:var(--muted); font-weight:800; }
+  .link{ color:var(--sub); font-weight:900; }
+
+  .bullets{
+    margin:8px 0 0 18px;
+    padding:0;
+    color:var(--ink);
+  }
+  .bullets li{ margin:6px 0; line-height:1.45; }
+  .keep-together{ break-inside:avoid; page-break-inside:avoid; }
+
+  @media print {
+    .topbar{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .keep-together{ break-inside:avoid; page-break-inside:avoid; }
+  }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="name">${escHtml(data.name)}</div>
+    ${headerTitle}
+    ${contactLine ? `<div class="contact">${contactLine}</div>` : ``}
+  </div>
+
+  <div class="wrap">
+    ${summary}
+    ${skills}
+    ${experience}
+    ${projects}
+    ${education}
+    ${certs}
+    ${links}
+  </div>
+</body>
+</html>`;
+}
+
+/* ---------------------------
+   Downloads
+----------------------------*/
 function downloadHTML(){
-  if(!generatedHTML){ showAlert("Generate a portfolio first."); return; }
+  if(!generatedHTML){ showAlert("Generate a profile first."); return; }
   const blob = new Blob([generatedHTML], { type:"text/html" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -587,8 +877,9 @@ function downloadHTML(){
 }
 
 function downloadPDF(){
-  if(!generatedHTML){ showAlert("Generate a portfolio first."); return; }
+  if(!generatedHTML){ showAlert("Generate a profile first."); return; }
 
+  // Render with html2pdf from DOM wrapper to reduce clipping
   const doc = new DOMParser().parseFromString(generatedHTML, "text/html");
   const styleTags = Array.from(doc.querySelectorAll("style")).map(s => s.outerHTML).join("\n");
 
@@ -604,16 +895,11 @@ function downloadPDF(){
       @page { margin: 10mm; }
       html, body { margin: 0 !important; padding: 0 !important; }
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-
       * { box-sizing: border-box; }
       #pdf-root, #pdf-root * { overflow: visible !important; }
       #pdf-root { width: 210mm; padding: 0; margin: 0; }
-
-      .keep-together, section, article, .project, .experience, li {
-        break-inside: avoid !important;
-        page-break-inside: avoid !important;
-      }
-      h1, h2, h3 { break-after: avoid !important; page-break-after: avoid !important; }
+      .keep-together { break-inside: avoid !important; page-break-inside: avoid !important; }
+      h2 { break-after: avoid !important; page-break-after: avoid !important; }
       p { orphans: 3; widows: 3; }
     </style>
     ${styleTags}
@@ -624,7 +910,13 @@ function downloadPDF(){
     filename:"portfolio.pdf",
     margin: 0,
     image:{type:"jpeg",quality:0.98},
-    html2canvas:{scale:2,useCORS:true,scrollY:0,windowWidth:794,backgroundColor:"#ffffff"},
+    html2canvas:{
+      scale:2,
+      useCORS:true,
+      scrollY:0,
+      windowWidth:794,
+      backgroundColor:"#ffffff"
+    },
     jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
     pagebreak:{mode:["css","legacy"]}
   }).from(wrapper).save();

@@ -1,6 +1,6 @@
 import pdf from "pdf-parse";
 
-const RATE_LIMIT_WINDOW = 60_000; // 1 minute
+const RATE_LIMIT_WINDOW = 60_000;
 const MAX_REQUESTS = 5;
 const ipStore = new Map();
 
@@ -19,7 +19,7 @@ async function extractTextFromFileBase64(fileBase64, mimeType) {
     const data = await pdf(buffer);
     return data.text || "";
   }
-  return buffer.toString("utf8"); // txt
+  return buffer.toString("utf8");
 }
 
 async function callOpenAI({ key, messages, maxTokens }) {
@@ -32,34 +32,18 @@ async function callOpenAI({ key, messages, maxTokens }) {
     body: JSON.stringify({
       model: "gpt-3.5-turbo",
       messages,
-      temperature: 0.2,
+      temperature: 0.1,
       max_tokens: maxTokens
     })
   });
 
   const j = await resp.json();
-  if (!resp.ok) {
-    throw new Error(j?.error?.message || "OpenAI request failed");
-  }
+  if (!resp.ok) throw new Error(j?.error?.message || "OpenAI request failed");
   return j;
 }
 
-function stripMarkdownFences(s) {
-  return String(s || "").replace(/```html/gi, "").replace(/```/g, "").trim();
-}
-
-function hasHtmlClose(s) {
-  const t = String(s || "").toLowerCase();
-  return t.includes("</html>");
-}
-
-function ensureHtmlClosed(s) {
-  // If model forgot closings, append safe closings.
-  let out = String(s || "").trim();
-  const low = out.toLowerCase();
-  if (!low.includes("</body>")) out += "\n</body>";
-  if (!low.includes("</html>")) out += "\n</html>";
-  return out;
+function safeJsonParse(s) {
+  try { return JSON.parse(s); } catch { return null; }
 }
 
 export default async function handler(req, res) {
@@ -74,7 +58,7 @@ export default async function handler(req, res) {
     const key = process.env.OPENAI_API_KEY;
     if (!key) return res.status(500).json({ error: "Missing OPENAI_API_KEY" });
 
-    const { resumeText, fileBase64, mimeType, role, notes, template } = req.body || {};
+    const { resumeText, fileBase64, mimeType, role, notes } = req.body || {};
 
     const allowed = ["application/pdf", "text/plain", ""];
     if (mimeType && !allowed.includes(mimeType)) {
@@ -82,71 +66,62 @@ export default async function handler(req, res) {
     }
 
     let text = (resumeText || "").trim();
-
-    // Fallback: server extraction
     if (!text) {
       if (!fileBase64) return res.status(400).json({ error: "Missing resume input." });
       text = await extractTextFromFileBase64(fileBase64, mimeType || "");
     }
 
-    // Too little text => image/protected PDF or extraction failure
     if (text.replace(/\s/g, "").length < 120) {
       return res.status(400).json({
         error:
-          "We could not extract enough readable text from this PDF. " +
-          "Try: Print → Save as PDF (text-based), or upload a TXT version."
+          "Not enough readable text extracted. Try Print→Save as PDF (text-based) or upload TXT."
       });
     }
 
-    /**
-     * IMPORTANT:
-     * Don’t chop too aggressively. We want full experience/projects.
-     * Still protect token usage by using head+tail if huge.
-     */
-    const HARD_LIMIT = 28_000; // increased from 18k
+    // Bigger input allowance (still safe)
+    const HARD_LIMIT = 30_000;
     if (text.length > HARD_LIMIT) {
-      const head = text.slice(0, 18_000);
-      const tail = text.slice(-10_000);
+      const head = text.slice(0, 19_000);
+      const tail = text.slice(-11_000);
       text = head + "\n\n---\n\n" + tail;
     }
 
     const systemPrompt = `
-You are a premium portfolio website generator.
+You extract a resume into STRICT JSON for a portfolio generator.
 
-OUTPUT:
-- Output ONLY complete standalone HTML (no markdown/backticks).
-- Use natural document flow.
-- Do NOT use fixed heights (no 100vh).
-- Do NOT use overflow:hidden on body or major containers.
-- Center layout with max-width: 900px.
-- Use compact spacing.
+Rules:
+- Output ONLY valid JSON. No markdown. No commentary.
+- Include ALL Professional Experience roles found.
+- Include ALL Projects found.
+- If many bullets, keep all roles/projects but max 3 bullets each.
+- Use empty arrays if a section is missing.
 
-COMPLETENESS (CRITICAL):
-- NEVER omit Professional Experience entries found in the resume.
-- NEVER omit Projects found in the resume.
-- If many bullets, keep ALL roles/projects but limit to max 2 bullets each (do not drop items).
-- You MUST return a COMPLETE HTML document with closing tags </body></html>.
-
-HEADER:
-- Full-width dark navy bar (#0B2D45).
-- Large white name centered.
-- One-line contact row: Location | Phone | Email | LinkedIn
-
-SKILLS:
-.skills-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
-
-PDF:
-- Wrap each experience item and each project item in <div class="keep-together">...</div>
-- .keep-together { break-inside: avoid; page-break-inside: avoid; }
-
-Template Style: ${template || "Modern Minimal"}
+JSON schema:
+{
+  "name": "",
+  "title": "",
+  "contact": { "location":"", "phone":"", "email":"", "linkedin":"", "website":"" },
+  "summary": "",
+  "skills": [ "..." ],
+  "experience": [
+    { "company":"", "role":"", "location":"", "start":"", "end":"", "bullets":[ "..." ] }
+  ],
+  "projects": [
+    { "name":"", "link":"", "tech":[ "..." ], "bullets":[ "..." ] }
+  ],
+  "education": [
+    { "school":"", "degree":"", "start":"", "end":"", "details":"" }
+  ],
+  "certifications": [ "..." ],
+  "links": [ { "label":"", "url":"" } ]
+}
 `.trim();
 
     const userPrompt = `
 Target Role: ${role || "Not specified"}
-Extra Notes: ${notes || "None"}
+Notes: ${notes || "None"}
 
-RESUME (DO NOT DROP EXPERIENCE/PROJECTS):
+RESUME:
 ${text}
 `.trim();
 
@@ -155,50 +130,37 @@ ${text}
       { role: "user", content: userPrompt }
     ];
 
-    /**
-     * Robust continuation loop:
-     * Keep asking to continue if model hit token limit.
-     * Stop when:
-     *  - finish_reason != "length" AND we have </html>
-     *  - OR we reach maxPasses
-     */
     let out = "";
+    let parsed = null;
     let passes = 0;
-    const maxPasses = 4;          // up to 4 chunks
-    const firstMaxTokens = 3000;  // bigger initial chunk
-    const nextMaxTokens = 1800;   // continuation chunks
+    const maxPasses = 4;
 
-    // First pass
-    const first = await callOpenAI({ key, messages: baseMessages, maxTokens: firstMaxTokens });
-    let chunk = stripMarkdownFences(first?.choices?.[0]?.message?.content || "");
-    out += chunk;
-    let finish = first?.choices?.[0]?.finish_reason;
+    // pass 1
+    let r = await callOpenAI({ key, messages: baseMessages, maxTokens: 2600 });
+    out += (r?.choices?.[0]?.message?.content || "");
+    parsed = safeJsonParse(out);
     passes++;
 
-    // Continue while truncated OR missing closing
-    while (passes < maxPasses && (finish === "length" || !hasHtmlClose(out))) {
-      const continueMessages = [
+    // continue until JSON parses (or max passes)
+    while (!parsed && passes < maxPasses) {
+      const contMsgs = [
         ...baseMessages,
         { role: "assistant", content: out },
-        {
-          role: "user",
-          content:
-            "Continue EXACTLY from where you stopped. Output ONLY the remaining HTML. " +
-            "Do NOT repeat earlier content. Ensure final output ends with </body></html>."
-        }
+        { role: "user", content: "Continue the JSON EXACTLY where you stopped. Output ONLY JSON (no repeats, no markdown)." }
       ];
-
-      const nxt = await callOpenAI({ key, messages: continueMessages, maxTokens: nextMaxTokens });
-      const nxtChunk = stripMarkdownFences(nxt?.choices?.[0]?.message?.content || "");
-      out += "\n" + nxtChunk;
-      finish = nxt?.choices?.[0]?.finish_reason;
+      r = await callOpenAI({ key, messages: contMsgs, maxTokens: 1800 });
+      out += (r?.choices?.[0]?.message?.content || "");
+      parsed = safeJsonParse(out);
       passes++;
     }
 
-    // Final safety: force closings if still missing
-    out = ensureHtmlClosed(out);
+    if (!parsed) {
+      return res.status(500).json({
+        error: "Model output could not be parsed as JSON. Try again (or use a shorter resume)."
+      });
+    }
 
-    return res.status(200).json({ text: out });
+    return res.status(200).json({ data: parsed });
   } catch (err) {
     return res.status(500).json({ error: String(err) });
   }
